@@ -1,0 +1,83 @@
+<div class="flex items-center justify-center min-h-screen bg-gray-100">
+  <div
+    class="relative flex flex-col m-6 space-y-8 bg-white shadow-2xl rounded-2xl md:flex-row md:space-y-0"
+  >
+    <!-- Left side -->
+    <div class="flex flex-col justify-center p-8 md:p-14">
+      <span class="mb-3 text-4xl font-bold">Bienvenido de vuelta</span>
+      <span class="font-light text-gray-400 mb-8">
+        Bienvenido de vuelta! Porfavor ingresa tus datos
+      </span>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <div class="py-4">
+          <span class="mb-2 text-md">Correo</span>
+          <input
+            type="text"
+            class="w-full p-2 border border-gray-300 rounded-md placeholder:font-light placeholder:text-gray-500"
+            formControlName="email"
+            id="email"
+          />
+          @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
+          <div class="text-red-500 text-sm mt-1">Un correo válido es requerido.</div>
+          }
+        </div>
+
+        <div class="py-4">
+          <span class="mb-2 text-md">Contraseña</span>
+          <input
+            type="password"
+            formControlName="password"
+            id="pass"
+            class="w-full p-2 border border-gray-300 rounded-md placeholder:font-light placeholder:text-gray-500"
+          />
+          @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+          <div class="text-red-500 text-sm mt-1">La contraseña es requerida.</div>
+          }
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="loginForm.invalid"
+          class="w-full bg-black text-white p-2 rounded-lg mb-4 hover:bg-white hover:text-black hover:border hover:border-gray-300 transition disabled:bg-gray-400"
+        >
+          Iniciar sesion
+        </button>
+      </form>
+
+      <button
+        class="w-full border border-gray-300 text-md p-2 rounded-lg mb-6 hover:bg-black hover:text-white transition"
+      >
+        <img src="/google.svg" alt="img" class="w-6 h-6 inline mr-2" />
+        Iniciar sesion con Google
+      </button>
+
+      <div class="text-center text-gray-400 text-sm">
+        No tienes una cuenta?
+        <span routerLink="/register" class="font-bold text-black cursor-pointer"
+          >Registrate gratis
+        </span>
+      </div>
+    </div>
+
+    <!-- Right side -->
+    <div class="relative w-[400px] hidden md:block">
+      <!-- Background image -->
+      <img
+        src="/image.png"
+        alt="Kaelo illustration"
+        class="object-cover w-full h-full rounded-r-2xl"
+      />
+
+      <!-- Text overlay with blur -->
+      <div
+        class="absolute bottom-10 right-6 left-6 p-6 bg-white/30 backdrop-blur-md rounded-lg drop-shadow-lg text-white"
+      >
+        <span class="text-xl font-light leading-relaxed">
+          "We've been using <b>Kaelo</b> to kickstart every new project <br />
+          and can't imagine working without it."
+        </span>
+      </div>
+    </div>
+  </div>
+</div>

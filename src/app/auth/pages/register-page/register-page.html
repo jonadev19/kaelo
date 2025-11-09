@@ -1,0 +1,142 @@
+<div class="flex items-center justify-center min-h-screen bg-gray-100">
+  <div
+    class="relative flex flex-col m-6 space-y-8 bg-white shadow-2xl rounded-2xl md:flex-row md:space-y-0"
+  >
+    <!-- Left side (Register form) -->
+    <div class="flex flex-col justify-center p-8 md:p-14">
+      <span class="mb-3 text-4xl font-bold">Create an account</span>
+      <span class="font-light text-gray-400 mb-8">
+        Join Kaelo and start exploring or creating routes 🚴‍♂️
+      </span>
+
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        <!-- Full Name -->
+        <div class="py-4">
+          <span class="mb-2 text-md">Full Name</span>
+          <input
+            type="text"
+            formControlName="fullName"
+            id="name"
+            placeholder="Your full name"
+            class="w-full p-2 border border-gray-300 rounded-md placeholder:font-light placeholder:text-gray-500"
+          />
+          @if (registerForm.get('fullName')?.invalid && registerForm.get('fullName')?.touched) {
+          <div class="text-red-500 text-sm mt-1">Full name is required.</div>
+          }
+        </div>
+
+        <!-- Email -->
+        <div class="py-4">
+          <span class="mb-2 text-md">Email</span>
+          <input
+            type="email"
+            formControlName="email"
+            id="email"
+            placeholder="example@email.com"
+            class="w-full p-2 border border-gray-300 rounded-md placeholder:font-light placeholder:text-gray-500"
+          />
+          @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
+          <div class="text-red-500 text-sm mt-1">A valid email is required.</div>
+          }
+        </div>
+
+        <!-- Password -->
+        <div class="py-4">
+          <span class="mb-2 text-md">Password</span>
+          <input
+            type="password"
+            formControlName="password"
+            id="password"
+            placeholder="At least 8 characters"
+            class="w-full p-2 border border-gray-300 rounded-md placeholder:font-light placeholder:text-gray-500"
+          />
+          @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
+          <div class="text-red-500 text-sm mt-1">Password must be at least 8 characters.</div>
+          }
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="py-4">
+          <span class="mb-2 text-md">Confirm Password</span>
+          <input
+            type="password"
+            formControlName="confirmPassword"
+            id="confirm"
+            placeholder="Re-enter your password"
+            class="w-full p-2 border border-gray-300 rounded-md placeholder:font-light placeholder:text-gray-500"
+          />
+          @if (registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
+          <div class="text-red-500 text-sm mt-1">Passwords do not match.</div>
+          }
+        </div>
+
+        <!-- Role Selector -->
+        <div class="py-4">
+          <span class="mb-2 text-md">Select your role</span>
+          <select
+            formControlName="role"
+            id="role"
+            class="w-full p-2 border border-gray-300 rounded-md bg-white text-gray-700"
+          >
+            <option value="">Choose your role</option>
+            <option value="ciclista">Cyclist Explorer</option>
+            <option value="creador_ruta">Route Creator</option>
+            <option value="comerciante">Pit Stop Vendor</option>
+          </select>
+          @if (registerForm.get('role')?.invalid && registerForm.get('role')?.touched) {
+          <div class="text-red-500 text-sm mt-1">Please select a role.</div>
+          }
+        </div>
+
+        <!-- Terms -->
+        <div class="flex items-center py-4 text-sm text-gray-600">
+          <input type="checkbox" formControlName="terms" id="terms" class="mr-2" />
+          <label for="terms">
+            I agree to the
+            <span class="font-semibold text-black cursor-pointer">Terms & Conditions</span>
+          </label>
+        </div>
+
+        <!-- Sign up Button -->
+        <button
+          type="submit"
+          [disabled]="registerForm.invalid"
+          class="w-full bg-black text-white p-2 rounded-lg mb-6 hover:bg-white hover:text-black hover:border hover:border-gray-300 transition disabled:bg-gray-400"
+        >
+          Sign up
+        </button>
+      </form>
+
+      <!-- Google Button -->
+      <button
+        class="w-full border border-gray-300 text-md p-2 rounded-lg mb-6 hover:bg-black hover:text-white transition"
+      >
+        <img src="/google.svg" alt="img" class="w-6 h-6 inline mr-2" />
+        Sign up with Google
+      </button>
+
+      <!-- Login Redirect -->
+      <div class="text-center text-gray-400 text-sm">
+        Already have an account?
+        <span routerLink="/login" class="font-bold text-black cursor-pointer">Sign in</span>
+      </div>
+    </div>
+
+    <!-- Right side (Kaelo image + message) -->
+    <div class="relative w-[400px] hidden md:block">
+      <img
+        src="/image.png"
+        alt="Kaelo illustration"
+        class="object-cover w-full h-full rounded-r-2xl"
+      />
+      <div
+        class="absolute bottom-10 right-6 p-6 bg-white/30 backdrop-blur-md rounded-lg drop-shadow-lg text-white"
+      >
+        <span class="text-xl font-light leading-relaxed">
+          “Join the Kaelo community — discover new routes, <br />
+          share your adventures, and support local pit stops.”
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
