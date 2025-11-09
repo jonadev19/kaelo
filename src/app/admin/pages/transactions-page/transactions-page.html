@@ -1,0 +1,84 @@
+<div class="p-4">
+  <h1 class="text-2xl font-bold">Transactions</h1>
+  <main class="flex-grow p-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-bold text-gray-800">Gestión de Transacciones</h1>
+  </div>
+
+  <div class="mt-6">
+    <div class="p-6 bg-white rounded-lg shadow-md">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-800">
+          Historial de Transacciones
+        </h2>
+        <div class="relative">
+          <input
+            type="text"
+            class="w-full py-2 pl-10 pr-4 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Buscar transacción..."
+          />
+          <div
+            class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"
+          >
+            <svg
+              class="w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              ></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr
+              class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b"
+            >
+              <th class="px-4 py-3">ID Transacción</th>
+              <th class="px-4 py-3">Usuario</th>
+              <th class="px-4 py-3">Comercio</th>
+              <th class="px-4 py-3">Monto</th>
+              <th class="px-4 py-3">Fecha</th>
+              <th class="px-4 py-3">Estado</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y">
+            @for (transaction of transactions; track transaction.id) {
+            <tr class="text-gray-700">
+              <td class="px-4 py-3 text-sm">{{ transaction.id }}</td>
+              <td class="px-4 py-3 text-sm">{{ transaction.user }}</td>
+              <td class="px-4 py-3 text-sm">{{ transaction.business }}</td>
+              <td class="px-4 py-3 text-sm">{{ transaction.amount }}</td>
+              <td class="px-4 py-3 text-sm">{{ transaction.date }}</td>
+              <td class="px-4 py-3 text-xs">
+                <span
+                  class="px-2 py-1 font-semibold leading-tight rounded-full"
+                  [class.bg-green-100]="transaction.status === 'completada'"
+                  [class.text-green-700]="transaction.status === 'completada'"
+                  [class.bg-yellow-100]="transaction.status === 'pendiente'"
+                  [class.text-yellow-700]="transaction.status === 'pendiente'"
+                  [class.bg-red-100]="transaction.status === 'fallida'"
+                  [class.text-red-700]="transaction.status === 'fallida'"
+                >
+                  {{ transaction.status }}
+                </span>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+</div>

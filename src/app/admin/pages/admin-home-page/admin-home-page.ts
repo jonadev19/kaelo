@@ -2,13 +2,8 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 @Component({
   selector: 'app-admin-home-page',
-  imports: [],
+  standalone: true,
   templateUrl: './admin-home-page.html',
-  styles: `
-    :host {
-      display: block;
-    }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AdminHomePage { }
+export class AdminHomePage {}
