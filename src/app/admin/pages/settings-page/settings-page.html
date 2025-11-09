@@ -1,0 +1,121 @@
+<div class="p-8 bg-gray-50 min-h-screen">
+  <h1 class="text-2xl font-bold mb-8 text-gray-900">Settings</h1>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Profile Settings -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Profile Settings</h2>
+        <p class="mt-1 text-sm text-gray-600">Update your personal information.</p>
+      </div>
+      <div class="p-6">
+        <form>
+          <div class="space-y-6">
+            <div>
+              <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+              <div class="mt-1">
+                <input type="text" id="name" value="Admin User" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2 px-3">
+              </div>
+            </div>
+
+            <div>
+              <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+              <div class="mt-1">
+                <input type="email" id="email" value="admin@example.com" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2 px-3">
+              </div>
+            </div>
+
+            <div>
+              <label for="password" class="block text-sm font-medium text-gray-700">New Password</label>
+              <div class="mt-1">
+                <input type="password" id="password" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2 px-3">
+              </div>
+            </div>
+
+            <div>
+              <label for="confirm-password" class="block text-sm font-medium text-gray-700">Confirm New Password</label>
+              <div class="mt-1">
+                <input type="password" id="confirm-password" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2 px-3">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="px-6 py-4 bg-gray-50 text-right rounded-b-lg">
+        <button type="button" class="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          Save Changes
+        </button>
+      </div>
+    </div>
+
+    <!-- General Settings -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">General Settings</h2>
+        <p class="mt-1 text-sm text-gray-600">Configure application-wide settings.</p>
+      </div>
+      <div class="p-6">
+        <form>
+          <div class="space-y-6">
+            <div>
+              <label for="site-title" class="block text-sm font-medium text-gray-700">Site Title</label>
+              <div class="mt-1">
+                <input type="text" id="site-title" value="Kaelo Admin" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2 px-3">
+              </div>
+            </div>
+
+            <div>
+              <label for="theme" class="block text-sm font-medium text-gray-700">Theme</label>
+              <div class="mt-1">
+                <select id="theme" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2 px-3">
+                  <option value="light" selected>Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="px-6 py-4 bg-gray-50 text-right rounded-b-lg">
+        <button type="button" class="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          Save Changes
+        </button>
+      </div>
+    </div>
+
+    <!-- Notification Settings -->
+    <div class="bg-white rounded-lg shadow col-span-1 lg:col-span-2">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Notifications</h2>
+        <p class="mt-1 text-sm text-gray-600">Manage how you receive notifications.</p>
+      </div>
+      <div class="p-6">
+        <div class="space-y-4">
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input id="email-notifications" type="checkbox" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="email-notifications" class="font-medium text-gray-700">Email Notifications</label>
+              <p class="text-gray-500">Receive an email for important account activity.</p>
+            </div>
+          </div>
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input id="push-notifications" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="push-notifications" class="font-medium text-gray-700">Push Notifications</label>
+              <p class="text-gray-500">Get push notifications on your devices.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 py-4 bg-gray-50 text-right rounded-b-lg">
+        <button type="button" class="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

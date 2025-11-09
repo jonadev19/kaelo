@@ -8,6 +8,7 @@ import { RoutesPage } from './admin/pages/routes-page/routes-page';
 import { BusinessesPage } from './admin/pages/businesses-page/businesses-page';
 import { TransactionsPage } from './admin/pages/transactions-page/transactions-page';
 import { AdminLayout } from './admin/layout/admin-layout';
+import { SettingsPage } from './admin/pages/settings-page/settings-page';
 
 export const routes: Routes = [
   { path: 'login', component: LoginPage },
@@ -22,6 +23,7 @@ export const routes: Routes = [
       { path: 'routes', component: RoutesPage },
       { path: 'businesses', component: BusinessesPage },
       { path: 'transactions', component: TransactionsPage },
+      { path: 'settings', component: SettingsPage },
     ],
   },
   { path: '', redirectTo: '/login', pathMatch: 'full' },

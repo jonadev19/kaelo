@@ -4,6 +4,7 @@
     <div class="flex items-center justify-between">
       <h1 class="text-3xl font-bold text-gray-800">Gestión de Usuarios</h1>
       <button
+        (click)="openCreateModal()"
         class="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       >
         <svg
@@ -66,15 +67,15 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y">
-              @for (user of users; track user.id) {
+              @for (user of users(); track user.id) {
               <tr class="text-gray-700">
                 <td class="px-4 py-3">
                   <div class="flex items-center text-sm">
                     <div class="relative hidden w-8 h-8 mr-3 rounded-full md:block">
                       <img
                         class="object-cover w-full h-full rounded-full"
-                        src="https://via.placeholder.com/150"
-                        alt=""
+                        [src]="user.avatar_url || 'https://via.placeholder.com/150'"
+                        alt="Avatar"
                         loading="lazy"
                       />
                       <div
@@ -83,7 +84,7 @@
                       ></div>
                     </div>
                     <div>
-                      <p class="font-semibold">{{ user.fullName }}</p>
+                      <p class="font-semibold">{{ user.full_name }}</p>
                     </div>
                   </div>
                 </td>
@@ -92,16 +93,17 @@
                 <td class="px-4 py-3 text-xs">
                   <span
                     class="px-2 py-1 font-semibold leading-tight rounded-full"
-                    [class.bg-green-100]="user.status === 'activo'"
-                    [class.text-green-700]="user.status === 'activo'"
-                    [class.bg-red-100]="user.status === 'inactivo'"
-                    [class.text-red-700]="user.status === 'inactivo'"
+                    [class.bg-green-100]="user.is_active"
+                    [class.text-green-700]="user.is_active"
+                    [class.bg-red-100]="!user.is_active"
+                    [class.text-red-700]="!user.is_active"
                   >
-                    {{ user.status }}
+                    {{ user.is_active ? 'Activo' : 'Inactivo' }}
                   </span>
                 </td>
                 <td class="px-4 py-3 text-sm text-center">
                   <button
+                    (click)="openEditModal(user)"
                     class="p-2 text-blue-500 transition-colors duration-150 bg-blue-100 rounded-full hover:bg-blue-200 focus:outline-none"
                   >
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -116,6 +118,7 @@
                     </svg>
                   </button>
                   <button
+                    (click)="deleteUser(user.id)"
                     class="p-2 ml-2 text-red-500 transition-colors duration-150 bg-red-100 rounded-full hover:bg-red-200 focus:outline-none"
                   >
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -136,3 +139,19 @@
     </div>
   </main>
 </div>
+
+<!-- Modal -->
+@if (isModalOpen()) {
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+  (click)="closeModal()"
+>
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg" (click)="$event.stopPropagation()">
+    <app-user-form
+      [user]="editingUser()"
+      (save)="handleSave($event)"
+      (close)="closeModal()"
+    ></app-user-form>
+  </div>
+</div>
+}
