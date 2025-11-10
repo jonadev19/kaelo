@@ -1,0 +1,156 @@
+<div class="p-6">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-800">
+        {{ route ? 'Editar Ruta' : 'Crear Ruta' }}
+      </h2>
+      <p class="text-sm text-gray-500">
+        Completa los campos para {{ route ? 'actualizar' : 'crear' }} la ruta.
+      </p>
+    </div>
+    <button
+      type="button"
+      class="p-2 text-gray-500 transition-colors duration-150 rounded-full hover:bg-gray-100"
+      (click)="onClose()"
+    >
+      <span class="sr-only">Cerrar</span>
+      ✕
+    </button>
+  </div>
+
+  <form [formGroup]="routeForm" (ngSubmit)="onSubmit()" class="space-y-4">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >Nombre de la ruta</label
+        >
+        <input
+          type="text"
+          formControlName="title"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
+          placeholder="Ej. Ruta del Sol"
+        />
+        @if (routeForm.get('title')?.invalid && routeForm.get('title')?.touched) {
+        <p class="mt-1 text-xs text-red-600">El nombre es obligatorio.</p>
+        }
+      </div>
+
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >Distancia (km)</label
+        >
+        <input
+          type="number"
+          step="0.1"
+          min="0"
+          formControlName="distance_km"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
+          placeholder="25"
+        />
+        @if (routeForm.get('distance_km')?.invalid && routeForm.get('distance_km')?.touched) {
+        <p class="mt-1 text-xs text-red-600">Ingresa una distancia válida mayor a 0.</p>
+        }
+      </div>
+
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >Dificultad</label
+        >
+        <select
+          formControlName="difficulty"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          @for (option of difficultyOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        @if (routeForm.get('difficulty')?.invalid && routeForm.get('difficulty')?.touched) {
+        <p class="mt-1 text-xs text-red-600">Selecciona una dificultad.</p>
+        }
+      </div>
+
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >Precio (USD)</label
+        >
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          formControlName="price"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
+          placeholder="19.99"
+        />
+        @if (routeForm.get('price')?.invalid && routeForm.get('price')?.touched) {
+        <p class="mt-1 text-xs text-red-600">Ingresa un precio válido.</p>
+        }
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >Estado</label
+        >
+        <select
+          formControlName="status"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          @for (option of statusOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        @if (routeForm.get('status')?.invalid && routeForm.get('status')?.touched) {
+        <p class="mt-1 text-xs text-red-600">Selecciona un estado.</p>
+        }
+      </div>
+
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >Creador</label
+        >
+        <select
+          formControlName="creator_id"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="" disabled>Selecciona un creador</option>
+          @for (creator of creators; track creator.id) {
+          <option [value]="creator.id">{{ creator.full_name }} - {{ creator.email }}</option>
+          }
+        </select>
+        @if (routeForm.get('creator_id')?.invalid && routeForm.get('creator_id')?.touched) {
+        <p class="mt-1 text-xs text-red-600">Selecciona un creador de ruta.</p>
+        }
+      </div>
+    </div>
+
+    <div>
+      <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+        >Descripción</label
+      >
+      <textarea
+        rows="4"
+        formControlName="description"
+        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
+        placeholder="Describe la ruta, puntos de interés, recomendaciones..."
+      ></textarea>
+    </div>
+
+    <div class="flex items-center justify-end gap-4 pt-4">
+      <button
+        type="button"
+        class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+        (click)="onClose()"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none disabled:opacity-50"
+        [disabled]="saving"
+      >
+        {{ saving ? 'Guardando...' : route ? 'Actualizar Ruta' : 'Crear Ruta' }}
+      </button>
+    </div>
+  </form>
+</div>

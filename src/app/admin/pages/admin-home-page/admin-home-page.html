@@ -70,7 +70,13 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-gray-500">Usuarios</p>
-          <p class="text-3xl font-bold text-gray-800">1,234</p>
+          <p class="text-3xl font-bold text-gray-800">
+            @if (loadingStats()) {
+            <span class="block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+            } @else {
+            {{ (stats()?.totalUsers ?? 0) | number : '1.0-0' }}
+            }
+          </p>
         </div>
         <div class="p-3 bg-blue-100 rounded-full">
           <svg
@@ -94,7 +100,13 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-gray-500">Rutas</p>
-          <p class="text-3xl font-bold text-gray-800">56</p>
+          <p class="text-3xl font-bold text-gray-800">
+            @if (loadingStats()) {
+            <span class="block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+            } @else {
+            {{ (stats()?.totalRoutes ?? 0) | number : '1.0-0' }}
+            }
+          </p>
         </div>
         <div class="p-3 bg-green-100 rounded-full">
           <svg
@@ -118,7 +130,13 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-gray-500">Comercios</p>
-          <p class="text-3xl font-bold text-gray-800">789</p>
+          <p class="text-3xl font-bold text-gray-800">
+            @if (loadingStats()) {
+            <span class="block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+            } @else {
+            {{ (stats()?.totalStores ?? 0) | number : '1.0-0' }}
+            }
+          </p>
         </div>
         <div class="p-3 bg-yellow-100 rounded-full">
           <svg
@@ -142,7 +160,13 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-gray-500">Transacciones</p>
-          <p class="text-3xl font-bold text-gray-800">12,345</p>
+          <p class="text-3xl font-bold text-gray-800">
+            @if (loadingStats()) {
+            <span class="block w-16 h-6 bg-gray-200 rounded animate-pulse"></span>
+            } @else {
+            {{ (stats()?.totalTransactions ?? 0) | number : '1.0-0' }}
+            }
+          </p>
         </div>
         <div class="p-3 bg-red-100 rounded-full">
           <svg
@@ -166,9 +190,14 @@
 
   <div class="mt-8">
     <div class="p-6 bg-white rounded-lg shadow-md">
-      <h2 class="text-xl font-semibold text-gray-800">
-        Transacciones Recientes
-      </h2>
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-semibold text-gray-800">
+            Transacciones Recientes
+          </h2>
+          <p class="text-sm text-gray-500">Últimos movimientos registrados en la plataforma.</p>
+        </div>
+      </div>
       <div class="mt-4">
         <table class="w-full">
           <thead>
@@ -183,87 +212,44 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y">
+            @if (loadingTransactions()) {
+            <tr>
+              <td colspan="5" class="px-4 py-6 text-sm text-center text-gray-500">
+                Cargando transacciones...
+              </td>
+            </tr>
+            } @else if (recentTransactions().length === 0) {
+            <tr>
+              <td colspan="5" class="px-4 py-6 text-sm text-center text-gray-500">
+                No hay transacciones registradas.
+              </td>
+            </tr>
+            } @else {
+            @for (transaction of recentTransactions(); track transaction.id) {
             <tr class="text-gray-700">
-              <td class="px-4 py-3 text-sm">1</td>
+              <td class="px-4 py-3 text-sm">{{ transaction.id.slice(0, 8) }}…</td>
               <td class="px-4 py-3">
-                <div class="flex items-center text-sm">
-                  <div
-                    class="relative hidden w-8 h-8 mr-3 rounded-full md:block"
-                  >
-                    <img
-                      class="object-cover w-full h-full rounded-full"
-                      src="https://via.placeholder.com/150"
-                      alt=""
-                      loading="lazy"
-                    />
-                    <div
-                      class="absolute inset-0 rounded-full shadow-inner"
-                      aria-hidden="true"
-                    ></div>
-                  </div>
-                  <div>
-                    <p class="font-semibold">John Doe</p>
-                  </div>
+                <div class="flex flex-col text-sm">
+                  <span class="font-semibold">
+                    {{ transaction.user?.full_name || 'Usuario sin nombre' }}
+                  </span>
+                  <span class="text-xs text-gray-500">
+                    {{ transaction.user?.email || '—' }}
+                  </span>
                 </div>
               </td>
-              <td class="px-4 py-3 text-sm">Comercio A</td>
-              <td class="px-4 py-3 text-sm">00.00</td>
-              <td class="px-4 py-3 text-sm">2025-11-08</td>
-            </tr>
-            <tr class="text-gray-700 bg-gray-50">
-              <td class="px-4 py-3 text-sm">2</td>
-              <td class="px-4 py-3">
-                <div class="flex items-center text-sm">
-                  <div
-                    class="relative hidden w-8 h-8 mr-3 rounded-full md:block"
-                  >
-                    <img
-                      class="object-cover w-full h-full rounded-full"
-                      src="https://via.placeholder.com/150"
-                      alt=""
-                      loading="lazy"
-                    />
-                    <div
-                      class="absolute inset-0 rounded-full shadow-inner"
-                      aria-hidden="true"
-                    ></div>
-                  </div>
-                  <div>
-                    <p class="font-semibold">Jane Smith</p>
-                  </div>
-                </div>
+              <td class="px-4 py-3 text-sm">
+                {{ transaction.route?.title || (transaction.transaction_type | titlecase) }}
               </td>
-              <td class="px-4 py-3 text-sm">Comercio B</td>
-              <td class="px-4 py-3 text-sm">$250.00</td>
-              <td class="px-4 py-3 text-sm">2025-11-08</td>
-            </tr>
-            <tr class="text-gray-700">
-              <td class="px-4 py-3 text-sm">3</td>
-              <td class="px-4 py-3">
-                <div class="flex items-center text-sm">
-                  <div
-                    class="relative hidden w-8 h-8 mr-3 rounded-full md:block"
-                  >
-                    <img
-                      class="object-cover w-full h-full rounded-full"
-                      src="https://via.placeholder.com/150"
-                      alt=""
-                      loading="lazy"
-                    />
-                    <div
-                      class="absolute inset-0 rounded-full shadow-inner"
-                      aria-hidden="true"
-                    ></div>
-                  </div>
-                  <div>
-                    <p class="font-semibold">Bob Johnson</p>
-                  </div>
-                </div>
+              <td class="px-4 py-3 text-sm font-semibold">
+                {{ transaction.amount | currency : 'USD' : 'symbol' : '1.2-2' }}
               </td>
-              <td class="px-4 py-3 text-sm">Comercio C</td>
-              <td class="px-4 py-3 text-sm">$50.00</td>
-              <td class="px-4 py-3 text-sm">2025-11-07</td>
+              <td class="px-4 py-3 text-sm">
+                {{ transaction.created_at | date : 'medium' }}
+              </td>
             </tr>
+            }
+            }
           </tbody>
         </table>
       </div>

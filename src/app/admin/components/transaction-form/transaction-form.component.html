@@ -1,0 +1,148 @@
+<div class="p-6">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-800">
+        {{ transaction ? 'Editar Transacción' : 'Registrar Transacción' }}
+      </h2>
+      <p class="text-sm text-gray-500">
+        Completa los campos para {{ transaction ? 'actualizar' : 'registrar' }} el movimiento.
+      </p>
+    </div>
+    <button
+      type="button"
+      class="p-2 text-gray-500 transition-colors duration-150 rounded-full hover:bg-gray-100"
+      (click)="onClose()"
+    >
+      ✕
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >Usuario</label
+        >
+        <select
+          formControlName="user_id"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="" disabled>Selecciona un usuario</option>
+          @for (user of users; track user.id) {
+          <option [value]="user.id">{{ user.full_name }} - {{ user.email }}</option>
+          }
+        </select>
+        @if (form.get('user_id')?.invalid && form.get('user_id')?.touched) {
+        <p class="mt-1 text-xs text-red-600">El usuario es obligatorio.</p>
+        }
+      </div>
+
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >Tipo</label
+        >
+        <select
+          formControlName="transaction_type"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="" disabled>Selecciona un tipo</option>
+          @for (option of transactionTypeOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        @if (form.get('transaction_type')?.invalid && form.get('transaction_type')?.touched) {
+        <p class="mt-1 text-xs text-red-600">El tipo es obligatorio.</p>
+        }
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >Monto (USD)</label
+        >
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          formControlName="amount"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
+          placeholder="0.00"
+        />
+        @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
+        <p class="mt-1 text-xs text-red-600">Ingresa un monto válido.</p>
+        }
+      </div>
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >Estado de pago</label
+        >
+        <select
+          formControlName="payment_status"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          @for (option of paymentStatusOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+        >Ruta asociada (opcional)</label
+      >
+      <select
+        formControlName="route_id"
+        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">Sin asignar</option>
+        @for (route of routes; track route.id) {
+        <option [value]="route.id">{{ route.title }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >Método de pago</label
+        >
+        <input
+          type="text"
+          formControlName="payment_method"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
+          placeholder="Tarjeta, PayPal..."
+        />
+      </div>
+      <div>
+        <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+          >ID pasarela</label
+        >
+        <input
+          type="text"
+          formControlName="payment_gateway_id"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
+          placeholder="Referencia del proveedor"
+        />
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-4 pt-4">
+      <button
+        type="button"
+        class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+        (click)="onClose()"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none disabled:opacity-50"
+        [disabled]="saving"
+      >
+        {{ saving ? 'Guardando...' : transaction ? 'Actualizar' : 'Crear' }}
+      </button>
+    </div>
+  </form>
+</div>

@@ -21,6 +21,25 @@ export class UserService {
     return data as User[];
   }
 
+  async getUsersByRole(role: User['role']) {
+    const { data, error } = await this.supabase.from('users').select('*').eq('role', role);
+
+    if (error) {
+      console.error(`Error fetching users with role ${role}:`, error);
+      throw error;
+    }
+
+    return data as User[];
+  }
+
+  getRouteCreators() {
+    return this.getUsersByRole('creador_ruta');
+  }
+
+  getMerchants() {
+    return this.getUsersByRole('comerciante');
+  }
+
   async createUser(userData: Partial<User> & { password?: string }) {
     const { data, error } = await this.supabase.functions.invoke('create-user', {
       body: userData,

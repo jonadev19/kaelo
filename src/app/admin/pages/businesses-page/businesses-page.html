@@ -2,6 +2,7 @@
   <div class="flex items-center justify-between">
     <h1 class="text-3xl font-bold text-gray-800">Gestión de Comercios</h1>
     <button
+      (click)="openCreateModal()"
       class="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
     >
       <svg
@@ -18,23 +19,26 @@
           d="M12 6v6m0 0v6m0-6h6m-6 0H6"
         ></path>
       </svg>
-      Crear Comercio
+      Registrar Comercio
     </button>
   </div>
 
   <div class="mt-6">
     <div class="p-6 bg-white rounded-lg shadow-md">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-gray-800">Lista de Comercios</h2>
-        <div class="relative">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 class="text-xl font-semibold text-gray-800">Lista de Comercios</h2>
+          <p class="text-sm text-gray-500">Controla los comercios registrados y su estado.</p>
+        </div>
+        <div class="relative w-full sm:w-72">
           <input
             type="text"
             class="w-full py-2 pl-10 pr-4 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Buscar comercio..."
+            [value]="searchTerm()"
+            (input)="handleSearch($any($event.target).value)"
           />
-          <div
-            class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"
-          >
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <svg
               class="w-5 h-5 text-gray-400"
               fill="none"
@@ -60,30 +64,51 @@
             >
               <th class="px-4 py-3">Nombre</th>
               <th class="px-4 py-3">Propietario</th>
-              <th class="px-4 py-3">Categoría</th>
               <th class="px-4 py-3">Estado</th>
+              <th class="px-4 py-3">Teléfono</th>
               <th class="px-4 py-3 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y">
-            @for (business of businesses; track business.id) {
+            @if (loadingStores()) {
+            <tr>
+              <td colspan="6" class="px-4 py-6 text-sm text-center text-gray-500">
+                Cargando comercios...
+              </td>
+            </tr>
+            } @else if (filteredStores().length === 0) {
+            <tr>
+              <td colspan="6" class="px-4 py-6 text-sm text-center text-gray-500">
+                No se encontraron comercios.
+              </td>
+            </tr>
+            } @else {
+            @for (store of filteredStores(); track store.id) {
             <tr class="text-gray-700">
-              <td class="px-4 py-3 text-sm">{{ business.name }}</td>
-              <td class="px-4 py-3 text-sm">{{ business.owner }}</td>
-              <td class="px-4 py-3 text-sm">{{ business.category }}</td>
+              <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ store.name }}</td>
+              <td class="px-4 py-3 text-sm">
+                <div class="flex flex-col">
+                  <span class="font-medium">{{ store.owner?.full_name || 'Sin propietario' }}</span>
+                  <span class="text-xs text-gray-500">{{ store.owner?.email || '—' }}</span>
+                </div>
+              </td>
               <td class="px-4 py-3 text-xs">
                 <span
                   class="px-2 py-1 font-semibold leading-tight rounded-full"
-                  [class.bg-green-100]="business.status === 'verificado'"
-                  [class.text-green-700]="business.status === 'verificado'"
-                  [class.bg-yellow-100]="business.status === 'pendiente'"
-                  [class.text-yellow-700]="business.status === 'pendiente'"
+                  [ngClass]="{
+                    'bg-yellow-100 text-yellow-700': store.status === 'pendiente_aprobacion',
+                    'bg-green-100 text-green-700': store.status === 'aprobado',
+                    'bg-red-100 text-red-700': store.status === 'rechazado',
+                    'bg-gray-100 text-gray-700': store.status === 'inactivo'
+                  }"
                 >
-                  {{ business.status }}
+                  {{ formatStatus(store.status) }}
                 </span>
               </td>
+              <td class="px-4 py-3 text-sm">{{ store.phone || 'No registrado' }}</td>
               <td class="px-4 py-3 text-sm text-center">
                 <button
+                  (click)="openEditModal(store)"
                   class="p-2 text-blue-500 transition-colors duration-150 bg-blue-100 rounded-full hover:bg-blue-200 focus:outline-none"
                 >
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -98,6 +123,7 @@
                   </svg>
                 </button>
                 <button
+                  (click)="deleteStore(store)"
                   class="p-2 ml-2 text-red-500 transition-colors duration-150 bg-red-100 rounded-full hover:bg-red-200 focus:outline-none"
                 >
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -111,9 +137,27 @@
               </td>
             </tr>
             }
+            }
           </tbody>
         </table>
       </div>
     </div>
   </div>
 </main>
+
+@if (isModalOpen()) {
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+  (click)="closeModal()"
+>
+  <div class="w-full max-w-3xl bg-white rounded-lg shadow-xl" (click)="$event.stopPropagation()">
+    <app-store-form
+      [store]="editingStore()"
+      [merchants]="merchants()"
+      [saving]="savingStore()"
+      (save)="handleSave($event)"
+      (close)="closeModal()"
+    />
+  </div>
+</div>
+}
