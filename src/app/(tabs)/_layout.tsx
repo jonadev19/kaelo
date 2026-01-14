@@ -47,6 +47,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Explorar',
+          headerShown: false,
           tabBarIcon: ({ color }) => <TabBarIcon name="compass" color={color} />,
         }}
       />
@@ -68,6 +69,7 @@ export default function TabLayout() {
         name="perfil"
         options={{
           title: 'Perfil',
+          headerShown: false,
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}
       />
