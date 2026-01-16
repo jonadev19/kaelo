@@ -61,11 +61,12 @@ function RootLayoutNav() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
+    const inProtectedRoute = segments[0] === 'route' || segments[0] === 'create-route' || segments[0] === 'business'; // Protected routes
 
-    if (!session && inAuthGroup) {
+    if (!session && (inAuthGroup || inProtectedRoute)) {
       // Redirect to login if not authenticated and trying to access protected routes
       router.replace('/login');
-    } else if (session && !inAuthGroup && segments[0] !== 'modal') {
+    } else if (session && !inAuthGroup && !inProtectedRoute && segments[0] !== 'modal') {
       // Redirect to home if authenticated and on auth screens
       router.replace('/(tabs)');
     }
@@ -85,6 +86,9 @@ function RootLayoutNav() {
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="route/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="business/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="create-route" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
