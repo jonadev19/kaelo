@@ -1,19 +1,43 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Tabs } from 'expo-router';
-import React from 'react';
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { Tabs } from "expo-router";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-import { brand, neutral } from '@/constants/Colors';
+import { useClientOnlyValue } from "@/components/useClientOnlyValue";
+import { brand, neutral } from "@/constants/Colors";
+import { useCart } from "@/stores/cartStore";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
+  name: React.ComponentProps<typeof FontAwesome>["name"];
   color: string;
+  badge?: number;
 }) {
-  return <FontAwesome size={24} style={{ marginBottom: -3 }} {...props} />;
+  const showBadge = props.badge !== undefined && props.badge > 0;
+
+  return (
+    <View style={styles.iconContainer}>
+      <FontAwesome
+        size={24}
+        style={{ marginBottom: -3 }}
+        name={props.name}
+        color={props.color}
+      />
+      {showBadge ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
+            {props.badge! > 9 ? "9+" : props.badge}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 export default function TabLayout() {
+  const { getItemCount } = useCart();
+  const cartCount = getItemCount();
+
   return (
     <Tabs
       screenOptions={{
@@ -29,46 +53,51 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '500',
+          fontWeight: "500",
         },
         headerStyle: {
           backgroundColor: neutral.white,
         },
         headerTitleStyle: {
           color: neutral.gray800,
-          fontWeight: '600',
+          fontWeight: "600",
         },
         headerShadowVisible: false,
         // Disable the static render of the header on web
         // to prevent a hydration error in React Navigation v6.
         headerShown: useClientOnlyValue(false, true),
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Explorar',
+          title: "Explorar",
           headerShown: false,
-          tabBarIcon: ({ color }) => <TabBarIcon name="compass" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="compass" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="rutas"
         options={{
-          title: 'Rutas',
+          title: "Rutas",
           tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
         }}
       />
       <Tabs.Screen
         name="comercios"
         options={{
-          title: 'Comercios',
-          tabBarIcon: ({ color }) => <TabBarIcon name="shopping-bag" color={color} />,
+          title: "Comercios",
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="shopping-bag" color={color} badge={cartCount} />
+          ),
         }}
       />
       <Tabs.Screen
         name="perfil"
         options={{
-          title: 'Perfil',
+          title: "Perfil",
           headerShown: false,
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}
@@ -77,3 +106,25 @@ export default function TabLayout() {
   );
 }
 
+const styles = StyleSheet.create({
+  iconContainer: {
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -6,
+    right: -10,
+    backgroundColor: "#EF4444",
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+});

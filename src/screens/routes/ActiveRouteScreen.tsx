@@ -5,9 +5,10 @@
 
 import { brand, neutral, semantic } from "@/constants/Colors";
 import { supabase } from "@/lib/supabase";
-import { getRouteById } from "@/services/routes";
-import type { Coordinate, RouteForMap } from "@/types";
+import { getBusinessesNearRoute, getRouteById } from "@/services/routes";
+import type { BusinessForMap, Coordinate, RouteForMap } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
+import { useKeepAwake } from "expo-keep-awake";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -35,7 +36,26 @@ const { width, height } = Dimensions.get("window");
 // Status types
 type RouteStatus = "loading" | "ready" | "active" | "paused" | "completed";
 
+// Business type icons
+const BUSINESS_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  restaurante: "restaurant",
+  cafeteria: "cafe",
+  tienda: "storefront",
+  taller_bicicletas: "build",
+  hospedaje: "bed",
+  tienda_conveniencia: "cart",
+  mercado: "basket",
+  otro: "location",
+};
+
+const getBusinessIcon = (type: string): keyof typeof Ionicons.glyphMap => {
+  return BUSINESS_ICONS[type] || "storefront";
+};
+
 export default function ActiveRouteScreen() {
+  // Keep screen awake during active navigation
+  useKeepAwake();
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -46,6 +66,7 @@ export default function ActiveRouteScreen() {
 
   // Route data
   const [route, setRoute] = useState<RouteForMap | null>(null);
+  const [businesses, setBusinesses] = useState<BusinessForMap[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Tracking state
@@ -97,8 +118,15 @@ export default function ActiveRouteScreen() {
   const loadRoute = async (routeId: string) => {
     try {
       setIsLoading(true);
-      const routeData = await getRouteById(routeId);
+
+      // Load route and nearby businesses in parallel
+      const [routeData, businessesData] = await Promise.all([
+        getRouteById(routeId),
+        getBusinessesNearRoute(routeId, 500), // 500m radius
+      ]);
+
       setRoute(routeData);
+      setBusinesses(businessesData);
       setStatus("ready");
 
       // Fit map to route
@@ -495,6 +523,28 @@ export default function ActiveRouteScreen() {
             <Ionicons name="checkmark" size={14} color={neutral.white} />
           </View>
         </Marker>
+
+        {/* Business Markers */}
+        {businesses.map((business) => (
+          <Marker
+            key={business.id}
+            coordinate={{
+              latitude: business.coordinate.latitude,
+              longitude: business.coordinate.longitude,
+            }}
+            title={business.name}
+            description={business.type.replace("_", " ")}
+            onCalloutPress={() => router.push(`/business/${business.id}`)}
+          >
+            <View style={styles.businessMarker}>
+              <Ionicons
+                name={getBusinessIcon(business.type)}
+                size={14}
+                color={neutral.white}
+              />
+            </View>
+          </Marker>
+        ))}
       </MapView>
 
       {/* Header */}
@@ -533,6 +583,62 @@ export default function ActiveRouteScreen() {
 
       {/* Stats Panel */}
       <View style={[styles.statsPanel, { paddingBottom: insets.bottom + 16 }]}>
+        {/* Navigation Info - Only show when active */}
+        {(status === "active" || status === "paused") && (
+          <View style={styles.navigationInfo}>
+            <View style={styles.navInfoItem}>
+              <Ionicons
+                name="flag-outline"
+                size={18}
+                color={semantic.success}
+              />
+              <View>
+                <Text style={styles.navInfoValue}>
+                  {Math.max(0, route.distanceKm - distanceTraveled).toFixed(1)}{" "}
+                  km
+                </Text>
+                <Text style={styles.navInfoLabel}>Restantes</Text>
+              </View>
+            </View>
+            <View style={styles.navInfoDivider} />
+            <View style={styles.navInfoItem}>
+              <Ionicons name="time-outline" size={18} color={brand.primary} />
+              <View>
+                <Text style={styles.navInfoValue}>
+                  {currentSpeed > 0
+                    ? formatTime(
+                        Math.round(
+                          ((route.distanceKm - distanceTraveled) /
+                            currentSpeed) *
+                            3600,
+                        ),
+                      )
+                    : "--:--"}
+                </Text>
+                <Text style={styles.navInfoLabel}>ETA</Text>
+              </View>
+            </View>
+            <View style={styles.navInfoDivider} />
+            <View style={styles.navInfoItem}>
+              <Ionicons
+                name="location-outline"
+                size={18}
+                color={semantic.error}
+              />
+              <View>
+                <Text style={styles.navInfoValue}>
+                  {userLocation && route
+                    ? (
+                        calculateDistance(userLocation, route.endPoint) * 1000
+                      ).toFixed(0) + "m"
+                    : "--"}
+                </Text>
+                <Text style={styles.navInfoLabel}>Al fin</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
@@ -773,6 +879,39 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 10,
   },
+  navigationInfo: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: neutral.gray100,
+    marginHorizontal: -20,
+    marginTop: -20,
+    marginBottom: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  navInfoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  navInfoValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: neutral.gray800,
+  },
+  navInfoLabel: {
+    fontSize: 10,
+    color: neutral.gray500,
+    textTransform: "uppercase",
+  },
+  navInfoDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: neutral.gray300,
+  },
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -878,5 +1017,20 @@ const styles = StyleSheet.create({
   },
   endMarker: {
     backgroundColor: "#EF4444",
+  },
+  businessMarker: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: brand.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: neutral.white,
+    shadowColor: neutral.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });

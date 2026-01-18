@@ -3,6 +3,7 @@
  * Shows complete information about a route including waypoints, nearby businesses, and purchase options
  */
 
+import RouteReviews from "@/components/RouteReviews";
 import { brand, neutral, semantic } from "@/constants/Colors";
 import { supabase } from "@/lib/supabase";
 import {
@@ -10,6 +11,7 @@ import {
   getRouteById,
   getRouteWaypoints,
 } from "@/services/routes";
+import { isRouteSaved, saveRoute, unsaveRoute } from "@/services/userRoutes";
 import type {
   BusinessForMap,
   RouteForMap,
@@ -97,6 +99,8 @@ export default function RouteDetailScreen() {
     "info" | "waypoints" | "businesses"
   >("info");
   const [hasAccess, setHasAccess] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -119,9 +123,13 @@ export default function RouteDetailScreen() {
       setWaypoints(waypointsData);
       setBusinesses(businessesData);
 
-      // Check if user has access to this route
+      // Check if user has access to this route and if it's saved
       if (routeData) {
-        await checkUserAccess(routeId, routeData.isFree);
+        const [_, savedStatus] = await Promise.all([
+          checkUserAccess(routeId, routeData.isFree),
+          isRouteSaved(routeId),
+        ]);
+        setIsSaved(savedStatus);
       }
 
       // Fit map to route
@@ -215,11 +223,43 @@ export default function RouteDetailScreen() {
   };
 
   const processPurchase = () => {
-    // TODO: Implement Stripe/MercadoPago integration
-    Alert.alert(
-      "Próximamente",
-      "El sistema de pagos estará disponible pronto.",
-    );
+    if (!route) return;
+    router.push({
+      pathname: "/payment",
+      params: {
+        routeId: route.id,
+        routeName: route.name,
+        amount: route.price.toString(),
+      },
+    });
+  };
+
+  const handleSaveRoute = async () => {
+    if (!id || isSaving) return;
+
+    setIsSaving(true);
+    try {
+      if (isSaved) {
+        const success = await unsaveRoute(id);
+        if (success) {
+          setIsSaved(false);
+        } else {
+          Alert.alert("Error", "No se pudo quitar de favoritos");
+        }
+      } else {
+        const success = await saveRoute(id);
+        if (success) {
+          setIsSaved(true);
+        } else {
+          Alert.alert("Error", "No se pudo guardar la ruta");
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling save:", error);
+      Alert.alert("Error", "Ocurrió un error");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Header opacity animation
@@ -278,6 +318,19 @@ export default function RouteDetailScreen() {
         <Ionicons name="arrow-back" size={24} color={neutral.white} />
       </TouchableOpacity>
 
+      {/* Save Button */}
+      <TouchableOpacity
+        style={[styles.saveButton, { top: insets.top + 8 }]}
+        onPress={handleSaveRoute}
+        disabled={isSaving}
+      >
+        <Ionicons
+          name={isSaved ? "bookmark" : "bookmark-outline"}
+          size={24}
+          color={isSaved ? "#FBBF24" : neutral.white}
+        />
+      </TouchableOpacity>
+
       {/* Share Button */}
       <TouchableOpacity
         style={[styles.shareButton, { top: insets.top + 8 }]}
@@ -327,6 +380,36 @@ export default function RouteDetailScreen() {
                 <Ionicons name="checkmark" size={14} color={neutral.white} />
               </View>
             </Marker>
+
+            {/* Waypoint Markers */}
+            {waypoints.map((waypoint) => {
+              const config =
+                WAYPOINT_ICONS[waypoint.waypoint_type] || WAYPOINT_ICONS.otro;
+              return (
+                <Marker
+                  key={waypoint.id}
+                  coordinate={{
+                    latitude: waypoint.location.coordinates[1],
+                    longitude: waypoint.location.coordinates[0],
+                  }}
+                  title={waypoint.name}
+                  description={waypoint.description || undefined}
+                >
+                  <View
+                    style={[
+                      styles.waypointMarker,
+                      { backgroundColor: config.color },
+                    ]}
+                  >
+                    <Ionicons
+                      name={config.icon}
+                      size={12}
+                      color={neutral.white}
+                    />
+                  </View>
+                </Marker>
+              );
+            })}
           </MapView>
 
           {/* Gradient Overlay */}
@@ -481,8 +564,8 @@ export default function RouteDetailScreen() {
                   {route.terrainType === "asfalto"
                     ? "Asfalto"
                     : route.terrainType === "terraceria"
-                    ? "Terracería"
-                    : "Mixto"}
+                      ? "Terracería"
+                      : "Mixto"}
                 </Text>
               </View>
               <View style={styles.infoRow}>
@@ -594,6 +677,11 @@ export default function RouteDetailScreen() {
             </View>
           )}
 
+          {/* Reviews Section */}
+          <View style={styles.section}>
+            <RouteReviews routeId={id!} hasAccess={hasAccess || route.isFree} />
+          </View>
+
           {/* Bottom Spacing */}
           <View style={{ height: 120 }} />
         </View>
@@ -699,6 +787,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 101,
   },
+  saveButton: {
+    position: "absolute",
+    right: 64,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 101,
+  },
   shareButton: {
     position: "absolute",
     right: 16,
@@ -739,6 +838,15 @@ const styles = StyleSheet.create({
   },
   endMarker: {
     backgroundColor: "#EF4444",
+  },
+  waypointMarker: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: neutral.white,
   },
   // Content
   content: {
