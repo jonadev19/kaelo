@@ -31,12 +31,12 @@ CREATE POLICY "Users can create own orders"
 ON orders FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
--- Merchants can only view their own orders
-CREATE POLICY "Merchants view own orders"
+-- Businesses can only view their own orders
+CREATE POLICY "Businesses view own orders"
 ON orders FOR SELECT
 USING (
-    merchant_id IN (
-        SELECT id FROM merchants WHERE owner_id = auth.uid()
+    business_id IN (
+        SELECT id FROM businesses WHERE owner_id = auth.uid()
     )
 );
 ```
@@ -70,7 +70,7 @@ USING (
 - Derecho ARCO (Acceso, Rectificación, Cancelación, Oposición)
 
 #### 3. Contratos de Afiliación
-- Acuerdo comercial con merchants
+- Acuerdo comercial con negocios afiliados
 - SLA (Service Level Agreement) básico
 - Términos de pago (net-15 días)
 
@@ -81,7 +81,7 @@ USING (
 | User Location | Solo durante ride activo (not persistent) | Session only | User only |
 | Payment Data | Nunca almacenamos tarjetas (Stripe handles PCI compliance) | N/A | Stripe only |
 | Personal Info | Encrypted at rest | 2 years after last activity | User + Admins (RLS) |
-| Order History | Encrypted at rest | Permanent (audit) | User + Merchant |
+| Order History | Encrypted at rest | Permanent (audit) | User + Business |
 
 ### 20.3 GDPR-Style Compliance
 
@@ -98,7 +98,7 @@ USING (
 CREATE OR REPLACE FUNCTION delete_user_data(target_user_id UUID)
 RETURNS VOID AS $$
 BEGIN
-    -- Anonymize orders (keep for merchant records)
+    -- Anonymize orders (keep for business records)
     UPDATE orders
     SET user_id = NULL,
         metadata = jsonb_set(metadata, '{anonymized}', 'true')

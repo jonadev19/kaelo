@@ -23,7 +23,7 @@
 |-------|-----------|----------------|-------|
 | **Unit Tests** | Jest + React Native Testing Library | 80% | • Utils functions<br>• Custom hooks<br>• State management<br>• Validation logic |
 | **Integration Tests** | Supertest + Supabase Test Client | 70% | • API endpoints<br>• Database queries<br>• Auth flows<br>• Payment processing |
-| **E2E Tests** | Detox (React Native) | Critical paths only | • User registration → First order<br>• Route download → Offline navigation<br>• Merchant: Order fulfillment |
+| **E2E Tests** | Detox (React Native) | Critical paths only | • User registration → First order<br>• Route download → Offline navigation<br>• Business: Order fulfillment |
 | **Visual Regression** | Percy / Chromatic | Key screens | • Route detail<br>• Checkout flow<br>• Merchant dashboard |
 
 ### 14.3 Test Scenarios
@@ -63,7 +63,7 @@ describe('validateStock', () => {
 describe('POST /orders', () => {
     it('should create order with valid payment', async () => {
         const orderData = {
-            merchant_id: 'merchant-123',
+            business_id: 'business-123',
             items: [{ product_id: 'product-456', quantity: 2 }],
             estimated_pickup_time: new Date(Date.now() + 3600000)
         };

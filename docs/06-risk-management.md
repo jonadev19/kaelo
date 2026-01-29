@@ -26,7 +26,7 @@
 
 | Riesgo | Probabilidad | Impacto | Score | Estrategia de Mitigación | Owner |
 |--------|--------------|---------|-------|-------------------------|-------|
-| **Falta de comercios afiliados** | 🟡 Medium (40%) | 🔴 High | 12 | • Early outreach (2 months before launch)<br>• Offer 0% commission first 3 months<br>• Partnership con cámara de comercio | Dev |
+| **Falta de negocios afiliados** | 🟡 Medium (40%) | 🔴 High | 12 | • Early outreach (2 months before launch)<br>• Offer 0% commission first 3 months<br>• Partnership con cámara de comercio | Dev |
 | **GPS offline performance issues** | 🟡 Medium (30%) | 🟡 Medium | 9 | • Extensive testing con diferentes devices<br>• Fallback a OpenStreetMap tiles<br>• Offline mode tutorial | Dev |
 | **Baja adopción de ciclistas** | 🟢 Low (20%) | 🔴 High | 8 | • Partnership con 3 colectivos ciclistas<br>• Launch event + promo codes<br>• Referral program (invite friends) | Marketing |
 | **Mapbox API rate limits** | 🟡 Medium (35%) | 🟡 Medium | 10 | • Implement tile caching<br>• Fallback a Mapbox free tier alternatives<br>• Monitor usage dashboard | Dev |
@@ -45,7 +45,7 @@
 | KPI | Target (Month 6) | Measurement Method |
 |-----|-----------------|-------------------|
 | MAU (Monthly Active Users) | 50 ciclistas | Supabase Analytics |
-| Active Merchants | 5 comercios | Database count |
+| Active Businesses | 5 negocios | Database count |
 | Order Volume | 20 orders | Database query |
 | Order Completion Rate | >85% | Completed / Total orders |
 | Average Order Value | $150 MXN | SUM(total) / COUNT(orders) |

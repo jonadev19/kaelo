@@ -56,7 +56,7 @@ export const trackOrderMetric = (event: string, properties: object) => {
 
 #### Business Metrics Dashboard
 - GMV (Gross Merchandise Value) - daily/weekly/monthly
-- Orders per merchant (ranking)
+- Orders per business (ranking)
 - Popular routes (by downloads)
 - User retention cohorts
 - Revenue by category
@@ -75,7 +75,7 @@ export const trackOrderMetric = (event: string, properties: object) => {
     "event": "payment_failed",
     "context": {
         "order_id": "uuid-456",
-        "merchant_id": "uuid-789",
+        "business_id": "uuid-789",
         "error_code": "card_declined",
         "payment_gateway": "stripe"
     },

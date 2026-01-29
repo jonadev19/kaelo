@@ -21,7 +21,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - **RF-017**: Activity History - historial cronológico de rutas completadas (P1)
 - **RF-018**: Performance Comparison - comparación vs recorridos anteriores (P2)
 - **RF-019**: Personal Records - récords personales del ciclista (P2)
-- **Nueva tabla `user_activities`**: almacenamiento de historial de recorridos con métricas GPS
+- **Nueva tabla `route_completions`**: almacenamiento de historial de recorridos con métricas GPS
 - MVP Scope ampliado para incluir Personal Metrics Dashboard
 
 ### Changed

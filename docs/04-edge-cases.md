@@ -16,7 +16,7 @@
 
 #### Impact:
 - User charged 2x
-- Merchant nunca recibe ningún order
+- Business nunca recibe ningún order
 - Inconsistent state entre Stripe y DB
 
 #### Mitigation Strategy:
@@ -81,10 +81,10 @@ BEGIN
     END IF;
 
     -- Create new order atomically
-    INSERT INTO orders (user_id, merchant_id, total_amount, payment_intent_id, metadata)
+    INSERT INTO orders (user_id, business_id, total_amount, payment_intent_id, metadata)
     VALUES (
         (order_data->>'user_id')::UUID,
-        (order_data->>'merchant_id')::UUID,
+        (order_data->>'business_id')::UUID,
         (order_data->>'total_amount')::NUMERIC,
         payment_intent_id,
         jsonb_build_object('idempotency_key', idempotency_key)
@@ -113,10 +113,10 @@ $$ LANGUAGE plpgsql;
 3. Ambos ven "Available" en UI
 4. Ambos procesan checkout
 5. AMBOS orders se crean (overselling)
-6. Merchant solo puede cumplir 1 order
+6. Business solo puede cumplir 1 order
 
 #### Impact:
-- Merchant debe cancelar order, refund user
+- Business debe cancelar order, refund user
 - Poor UX, potential review bombing
 - Inventory inconsistencies
 
@@ -419,8 +419,8 @@ const resumeActivity = async () => {
 
 ```sql
 -- Constraint: Solo una actividad in_progress por usuario
-CREATE UNIQUE INDEX idx_one_active_activity_per_user 
-ON user_activities(user_id) 
+CREATE UNIQUE INDEX idx_one_active_activity_per_user
+ON route_completions(user_id)
 WHERE status = 'in_progress';
 ```
 
@@ -429,7 +429,7 @@ WHERE status = 'in_progress';
 const startActivity = async (routeId: string) => {
     // Check if another device has active activity
     const { data: activeActivity } = await supabase
-        .from('user_activities')
+        .from('route_completions')
         .select('id, started_at, device_id')
         .eq('user_id', userId)
         .eq('status', 'in_progress')
