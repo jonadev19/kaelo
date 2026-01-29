@@ -1,6 +1,7 @@
-import { brand, neutral } from '@/constants/Colors';
+import { accessibleText, brand, neutral, radius, shadows, touchTarget } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
@@ -28,6 +29,8 @@ export function LoginScreen() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [emailFocused, setEmailFocused] = useState(false);
+    const [passwordFocused, setPasswordFocused] = useState(false);
     const { signIn } = useAuth();
 
     const handleLogin = async () => {
@@ -60,11 +63,24 @@ export function LoginScreen() {
                     style={styles.backgroundImage}
                     resizeMode="cover"
                 >
+                    {/* Gradient Overlay */}
+                    <LinearGradient
+                        colors={['transparent', 'rgba(13, 148, 136, 0.3)']}
+                        style={StyleSheet.absoluteFill}
+                    />
+
                     {/* Top Section - Branding */}
                     <View style={styles.brandingContainer}>
                         <Text style={styles.logo}>Kaelo</Text>
                         <View style={styles.taglineContainer}>
-                            <Text style={styles.tagline}>Explora Yucatán en dos ruedas</Text>
+                            <LinearGradient
+                                colors={[brand.primary, brand.gradient.end]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.taglineGradient}
+                            >
+                                <Text style={styles.tagline}>Explora Yucatán en dos ruedas</Text>
+                            </LinearGradient>
                         </View>
                     </View>
                 </ImageBackground>
@@ -73,12 +89,13 @@ export function LoginScreen() {
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.formContainer}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                    keyboardVerticalOffset={0}
                 >
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                         contentContainerStyle={styles.scrollContent}
+                        bounces={false}
                     >
                         <View style={styles.handle} />
 
@@ -87,44 +104,67 @@ export function LoginScreen() {
 
                         {/* Email Input */}
                         <Text style={styles.inputLabel}>Correo electrónico</Text>
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="mail-outline" size={20} color={neutral.gray500} style={styles.inputIcon} />
+                        <View style={[
+                            styles.inputContainer,
+                            emailFocused && styles.inputContainerFocused
+                        ]}>
+                            <Ionicons
+                                name="mail-outline"
+                                size={20}
+                                color={emailFocused ? brand.primary : neutral.steel}
+                                style={styles.inputIcon}
+                            />
                             <TextInput
                                 style={styles.input}
                                 placeholder="aventurero@ejemplo.com"
-                                placeholderTextColor={neutral.gray400}
+                                placeholderTextColor={accessibleText.placeholder}
                                 value={email}
                                 onChangeText={setEmail}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 autoCorrect={false}
                                 returnKeyType="next"
+                                onFocus={() => setEmailFocused(true)}
+                                onBlur={() => setEmailFocused(false)}
                             />
                         </View>
 
                         {/* Password Input */}
                         <Text style={styles.inputLabel}>Contraseña</Text>
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="lock-closed-outline" size={20} color={neutral.gray500} style={styles.inputIcon} />
+                        <View style={[
+                            styles.inputContainer,
+                            passwordFocused && styles.inputContainerFocused
+                        ]}>
+                            <Ionicons
+                                name="lock-closed-outline"
+                                size={20}
+                                color={passwordFocused ? brand.primary : neutral.steel}
+                                style={styles.inputIcon}
+                            />
                             <TextInput
                                 style={styles.input}
                                 placeholder="••••••••"
-                                placeholderTextColor={neutral.gray400}
+                                placeholderTextColor={accessibleText.placeholder}
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry={!showPassword}
                                 autoCapitalize="none"
                                 returnKeyType="done"
                                 onSubmitEditing={handleLogin}
+                                onFocus={() => setPasswordFocused(true)}
+                                onBlur={() => setPasswordFocused(false)}
                             />
                             <TouchableOpacity
                                 onPress={() => setShowPassword(!showPassword)}
                                 style={styles.eyeIcon}
+                                accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                accessibilityRole="button"
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                             >
                                 <Ionicons
                                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                                     size={20}
-                                    color={neutral.gray500}
+                                    color={accessibleText.placeholder}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -134,20 +174,30 @@ export function LoginScreen() {
                             <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
                         </TouchableOpacity>
 
-                        {/* Login Button */}
+                        {/* Login Button with Gradient */}
                         <TouchableOpacity
                             style={[styles.loginButton, loading && styles.loginButtonDisabled]}
                             onPress={handleLogin}
                             disabled={loading}
+                            activeOpacity={0.9}
                         >
-                            {loading ? (
-                                <ActivityIndicator color={neutral.white} />
-                            ) : (
-                                <>
-                                    <Text style={styles.loginButtonText}>Entrar</Text>
-                                    <Ionicons name="arrow-forward" size={20} color={neutral.white} style={styles.buttonIcon} />
-                                </>
-                            )}
+                            <LinearGradient
+                                colors={[brand.primary, brand.gradient.end]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.loginButtonGradient}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color={neutral.white} />
+                                ) : (
+                                    <>
+                                        <Text style={styles.loginButtonText}>Entrar</Text>
+                                        <View style={styles.buttonIconContainer}>
+                                            <Ionicons name="arrow-forward" size={18} color={neutral.white} />
+                                        </View>
+                                    </>
+                                )}
+                            </LinearGradient>
                         </TouchableOpacity>
 
                         {/* Register Link */}
@@ -169,10 +219,10 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: neutral.white,
+        backgroundColor: neutral.snow,
     },
     backgroundImage: {
-        height: height * 0.45,
+        height: height * 0.38,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -181,118 +231,140 @@ const styles = StyleSheet.create({
         marginTop: -40,
     },
     logo: {
-        fontSize: 48,
-        fontWeight: 'bold',
+        fontSize: 52,
+        fontWeight: '800',
         color: neutral.white,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
+        textShadowColor: 'rgba(0, 0, 0, 0.4)',
+        textShadowOffset: { width: 0, height: 3 },
+        textShadowRadius: 6,
+        letterSpacing: -1,
     },
     taglineContainer: {
-        backgroundColor: brand.primaryLight,
-        paddingHorizontal: 20,
-        paddingVertical: 8,
-        borderRadius: 20,
-        marginTop: 8,
+        marginTop: 12,
+        borderRadius: radius.full,
+        overflow: 'hidden',
+    },
+    taglineGradient: {
+        paddingHorizontal: 24,
+        paddingVertical: 10,
     },
     tagline: {
         color: neutral.white,
         fontSize: 14,
         fontWeight: '600',
+        letterSpacing: 0.3,
     },
     formContainer: {
         flex: 1,
         backgroundColor: neutral.white,
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
+        borderTopLeftRadius: radius.xxl,
+        borderTopRightRadius: radius.xxl,
         marginTop: -30,
-        paddingHorizontal: 24,
-        paddingTop: 12,
+        paddingHorizontal: 28,
+        paddingTop: 16,
+        ...shadows.large,
     },
     scrollContent: {
         flexGrow: 1,
-        paddingBottom: 30,
+        paddingBottom: 40,
     },
     handle: {
         width: 40,
-        height: 4,
-        backgroundColor: neutral.gray200,
-        borderRadius: 2,
+        height: 5,
+        backgroundColor: neutral.silver,
+        borderRadius: 3,
         alignSelf: 'center',
-        marginBottom: 20,
+        marginBottom: 24,
     },
     welcomeTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: neutral.gray800,
+        fontSize: 30,
+        fontWeight: '700',
+        color: neutral.charcoal,
         textAlign: 'center',
         marginBottom: 8,
+        letterSpacing: -0.5,
     },
     welcomeSubtitle: {
         fontSize: 16,
-        color: neutral.gray500,
+        color: neutral.slate,
         textAlign: 'center',
-        marginBottom: 32,
+        marginBottom: 36,
     },
     inputLabel: {
         fontSize: 14,
         fontWeight: '600',
-        color: neutral.gray800,
-        marginBottom: 8,
+        color: neutral.charcoal,
+        marginBottom: 10,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: neutral.gray100,
-        borderRadius: 12,
+        backgroundColor: neutral.pearl,
+        borderRadius: radius.md,
         paddingHorizontal: 16,
-        marginBottom: 16,
-        height: 52,
+        marginBottom: 18,
+        height: 56,
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    inputContainerFocused: {
+        borderColor: brand.primary,
+        backgroundColor: neutral.white,
     },
     inputIcon: {
-        marginRight: 12,
+        marginRight: 14,
     },
     input: {
         flex: 1,
         fontSize: 16,
-        color: neutral.gray800,
+        color: neutral.charcoal,
     },
     eyeIcon: {
-        padding: 4,
+        padding: touchTarget.padding,
+        minWidth: touchTarget.min,
+        minHeight: touchTarget.min,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     forgotPassword: {
         alignSelf: 'flex-end',
-        marginBottom: 24,
+        marginBottom: 28,
     },
     forgotPasswordText: {
-        color: neutral.gray500,
+        color: neutral.slate,
         fontSize: 14,
+        fontWeight: '500',
     },
     loginButton: {
-        backgroundColor: brand.primary,
-        borderRadius: 30,
-        height: 56,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 24,
-        shadowColor: brand.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        borderRadius: radius.full,
+        overflow: 'hidden',
+        marginBottom: 28,
+        ...shadows.colored(brand.primary),
     },
     loginButtonDisabled: {
         opacity: 0.7,
     },
+    loginButtonGradient: {
+        height: 58,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
     loginButtonText: {
         color: neutral.white,
         fontSize: 18,
-        fontWeight: '600',
-        marginRight: 8,
+        fontWeight: '700',
+        marginRight: 10,
+        letterSpacing: 0.3,
     },
-    buttonIcon: {
-        marginLeft: 4,
+    buttonIconContainer: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     registerContainer: {
         flexDirection: 'row',
@@ -300,13 +372,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     registerText: {
-        color: neutral.gray500,
-        fontSize: 14,
+        color: neutral.slate,
+        fontSize: 15,
     },
     registerLink: {
         color: brand.primary,
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 15,
+        fontWeight: '700',
     },
 });
-

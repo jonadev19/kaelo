@@ -4,7 +4,7 @@
  */
 
 import { Toast, useToast } from "@/components/Toast";
-import { brand, neutral, semantic } from "@/constants/Colors";
+import { accent, brand, neutral, semantic, typography } from "@/constants/Colors";
 import {
   BUSINESS_TYPE_ICONS,
   BUSINESS_TYPE_LABELS,
@@ -15,11 +15,13 @@ import {
 } from "@/services/businesses";
 import { useCart } from "@/stores/cartStore";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
   Linking,
   ScrollView,
@@ -44,6 +46,16 @@ export default function BusinessDetailScreen() {
   const [products, setProducts] = useState<BusinessProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"info" | "products">("info");
+  const tabIndicatorX = React.useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(tabIndicatorX, {
+      toValue: activeTab === 'info' ? 0 : width / 2,
+      useNativeDriver: true,
+      damping: 20,
+      stiffness: 150,
+    }).start();
+  }, [activeTab]);
 
   // Toast
   const { toast, showToast, hideToast } = useToast();
@@ -182,7 +194,7 @@ export default function BusinessDetailScreen() {
           <Ionicons
             name="alert-circle-outline"
             size={48}
-            color={neutral.gray400}
+            color={neutral.steel}
           />
           <Text style={styles.errorText}>Comercio no encontrado</Text>
           <TouchableOpacity
@@ -212,7 +224,7 @@ export default function BusinessDetailScreen() {
           style={styles.headerButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color={neutral.gray800} />
+          <Ionicons name="arrow-back" size={24} color={neutral.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {business.name}
@@ -221,7 +233,10 @@ export default function BusinessDetailScreen() {
       </View>
 
       {/* Hero */}
-      <View style={styles.heroContainer}>
+      <LinearGradient
+        colors={[brand.primaryTint, neutral.white]}
+        style={styles.heroContainer}
+      >
         <View style={styles.heroImage}>
           <Ionicons
             name={getTypeIcon(business.type)}
@@ -236,7 +251,7 @@ export default function BusinessDetailScreen() {
             </Text>
           </View>
           <View style={styles.ratingRow}>
-            <Ionicons name="star" size={18} color="#FBBF24" />
+            <Ionicons name="star" size={18} color={accent.amber} />
             <Text style={styles.ratingText}>
               {business.averageRating.toFixed(1)}
             </Text>
@@ -245,12 +260,12 @@ export default function BusinessDetailScreen() {
             </Text>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === "info" && styles.activeTab]}
+          style={styles.tab}
           onPress={() => setActiveTab("info")}
         >
           <Text
@@ -263,7 +278,7 @@ export default function BusinessDetailScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === "products" && styles.activeTab]}
+          style={styles.tab}
           onPress={() => setActiveTab("products")}
         >
           <Text
@@ -275,6 +290,12 @@ export default function BusinessDetailScreen() {
             Productos ({products.length})
           </Text>
         </TouchableOpacity>
+        <Animated.View
+          style={[
+            styles.tabIndicator,
+            { transform: [{ translateX: tabIndicatorX }] }
+          ]}
+        />
       </View>
 
       {/* Content */}
@@ -311,7 +332,7 @@ export default function BusinessDetailScreen() {
                   <Ionicons
                     name="open-outline"
                     size={16}
-                    color={neutral.gray400}
+                    color={neutral.steel}
                   />
                 </TouchableOpacity>
               )}
@@ -332,7 +353,7 @@ export default function BusinessDetailScreen() {
                   <Ionicons
                     name="open-outline"
                     size={16}
-                    color={neutral.gray400}
+                    color={neutral.steel}
                   />
                 </TouchableOpacity>
               )}
@@ -353,7 +374,7 @@ export default function BusinessDetailScreen() {
                   <Ionicons
                     name="open-outline"
                     size={16}
-                    color={neutral.gray400}
+                    color={neutral.steel}
                   />
                 </TouchableOpacity>
               )}
@@ -376,7 +397,7 @@ export default function BusinessDetailScreen() {
                   <Ionicons
                     name="open-outline"
                     size={16}
-                    color={neutral.gray400}
+                    color={neutral.steel}
                   />
                 </TouchableOpacity>
               )}
@@ -403,7 +424,7 @@ export default function BusinessDetailScreen() {
                 <Ionicons
                   name="basket-outline"
                   size={48}
-                  color={neutral.gray400}
+                  color={neutral.steel}
                 />
                 <Text style={styles.emptyProductsText}>
                   No hay productos disponibles
@@ -420,7 +441,7 @@ export default function BusinessDetailScreen() {
                           <Ionicons
                             name="cube-outline"
                             size={24}
-                            color={neutral.gray400}
+                            color={neutral.steel}
                           />
                         </View>
                         <View style={styles.productInfo}>
@@ -438,7 +459,7 @@ export default function BusinessDetailScreen() {
                           style={[
                             styles.addButton,
                             getItemQuantity(product.id) > 0 &&
-                              styles.addButtonActive,
+                            styles.addButtonActive,
                           ]}
                           onPress={() => handleAddToCart(product)}
                         >
@@ -519,8 +540,8 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   errorText: {
-    fontSize: 16,
-    color: neutral.gray500,
+    fontSize: typography.bodyLg,
+    color: neutral.slate,
     marginTop: 12,
     marginBottom: 24,
   },
@@ -531,7 +552,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   backButtonText: {
-    fontSize: 14,
+    fontSize: typography.bodySm,
     fontWeight: "600",
     color: neutral.white,
   },
@@ -542,7 +563,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: neutral.gray200,
+    borderBottomColor: neutral.silver,
   },
   headerButton: {
     width: 40,
@@ -554,7 +575,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "600",
-    color: neutral.gray800,
+    color: neutral.charcoal,
     textAlign: "center",
   },
   // Hero
@@ -562,7 +583,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 24,
     borderBottomWidth: 1,
-    borderBottomColor: neutral.gray100,
+    borderBottomColor: neutral.pearl,
   },
   heroImage: {
     width: 120,
@@ -584,7 +605,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   typeBadgeText: {
-    fontSize: 12,
+    fontSize: typography.caption,
     fontWeight: "600",
     color: neutral.white,
   },
@@ -594,34 +615,40 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingText: {
-    fontSize: 18,
+    fontSize: typography.headingSm,
     fontWeight: "600",
-    color: neutral.gray800,
+    color: neutral.charcoal,
   },
   reviewsText: {
-    fontSize: 14,
-    color: neutral.gray500,
+    fontSize: typography.bodySm,
+    color: neutral.slate,
   },
   // Tabs
   tabsContainer: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: neutral.gray200,
+    borderBottomColor: neutral.silver,
+    position: 'relative',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    height: 2,
+    backgroundColor: brand.primary,
+    width: width / 2,
   },
   tab: {
     flex: 1,
     paddingVertical: 14,
     alignItems: "center",
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
   },
   activeTab: {
-    borderBottomColor: brand.primary,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: typography.bodySm,
     fontWeight: "500",
-    color: neutral.gray500,
+    color: neutral.slate,
   },
   activeTabText: {
     color: brand.primary,
@@ -634,17 +661,17 @@ const styles = StyleSheet.create({
   section: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: neutral.gray100,
+    borderBottomColor: neutral.pearl,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: typography.bodyLg,
     fontWeight: "600",
-    color: neutral.gray800,
+    color: neutral.charcoal,
     marginBottom: 12,
   },
   descriptionText: {
-    fontSize: 14,
-    color: neutral.gray700,
+    fontSize: typography.bodySm,
+    color: neutral.graphite,
     lineHeight: 22,
   },
   // Contact
@@ -653,7 +680,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: neutral.gray100,
+    borderBottomColor: neutral.pearl,
   },
   contactIcon: {
     width: 36,
@@ -667,7 +694,7 @@ const styles = StyleSheet.create({
   contactText: {
     flex: 1,
     fontSize: 14,
-    color: neutral.gray700,
+    color: neutral.graphite,
   },
   // Hours
   hoursRow: {
@@ -676,12 +703,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   dayText: {
-    fontSize: 14,
-    color: neutral.gray700,
+    fontSize: typography.bodySm,
+    color: neutral.graphite,
   },
   hoursText: {
-    fontSize: 14,
-    color: neutral.gray500,
+    fontSize: typography.bodySm,
+    color: neutral.slate,
   },
   // Products
   emptyProducts: {
@@ -690,20 +717,20 @@ const styles = StyleSheet.create({
   },
   emptyProductsText: {
     marginTop: 12,
-    fontSize: 14,
-    color: neutral.gray500,
+    fontSize: typography.bodySm,
+    color: neutral.slate,
   },
   productCard: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: neutral.gray100,
+    borderBottomColor: neutral.pearl,
   },
   productImage: {
     width: 56,
     height: 56,
-    backgroundColor: neutral.gray100,
+    backgroundColor: neutral.pearl,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -713,17 +740,17 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   productName: {
-    fontSize: 14,
+    fontSize: typography.bodySm,
     fontWeight: "600",
-    color: neutral.gray800,
+    color: neutral.charcoal,
   },
   productDesc: {
-    fontSize: 12,
-    color: neutral.gray500,
+    fontSize: typography.caption,
+    color: neutral.slate,
     marginTop: 2,
   },
   productPrice: {
-    fontSize: 15,
+    fontSize: typography.bodyMd,
     fontWeight: "600",
     color: brand.primary,
     marginTop: 4,
@@ -740,7 +767,7 @@ const styles = StyleSheet.create({
     backgroundColor: semantic.success,
   },
   addButtonQuantity: {
-    fontSize: 14,
+    fontSize: typography.bodySm,
     fontWeight: "700",
     color: neutral.white,
   },
@@ -751,7 +778,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: neutral.gray200,
+    borderTopColor: neutral.silver,
     backgroundColor: neutral.white,
   },
   ctaButton: {
@@ -765,7 +792,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ctaButtonText: {
-    fontSize: 16,
+    fontSize: typography.bodyLg,
     fontWeight: "600",
     color: neutral.white,
   },
@@ -780,7 +807,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ctaButtonSecondaryText: {
-    fontSize: 16,
+    fontSize: typography.bodyLg,
     fontWeight: "600",
     color: brand.primary,
   },
@@ -808,12 +835,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cartBadgeText: {
-    fontSize: 12,
+    fontSize: typography.caption,
     fontWeight: "700",
     color: brand.primary,
   },
   cartButtonText: {
-    fontSize: 16,
+    fontSize: typography.bodyLg,
     fontWeight: "600",
     color: neutral.white,
   },

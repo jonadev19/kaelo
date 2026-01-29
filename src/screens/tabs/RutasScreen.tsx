@@ -3,7 +3,7 @@
  * Shows user's purchased, created, and saved routes
  */
 
-import { brand, neutral, semantic } from '@/constants/Colors';
+import { accent, brand, neutral, radius, semantic, shadows } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import {
     getMyCreatedRoutes,
@@ -12,6 +12,7 @@ import {
     UserRoute,
 } from '@/services/userRoutes';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
@@ -37,10 +38,10 @@ const TABS: { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap 
 ];
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-    facil: '#22C55E',
-    moderada: '#F59E0B',
-    dificil: '#EF4444',
-    experto: '#7C3AED',
+    facil: accent.emerald,
+    moderada: accent.amber,
+    dificil: accent.coral,
+    experto: accent.violet,
 };
 
 const DIFFICULTY_LABELS: Record<string, string> = {
@@ -51,11 +52,11 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-    borrador: { label: 'Borrador', color: neutral.gray500 },
-    en_revision: { label: 'En revisión', color: '#F59E0B' },
+    borrador: { label: 'Borrador', color: neutral.slate },
+    en_revision: { label: 'En revisión', color: accent.amber },
     publicado: { label: 'Publicado', color: semantic.success },
     rechazado: { label: 'Rechazado', color: semantic.error },
-    archivado: { label: 'Archivado', color: neutral.gray400 },
+    archivado: { label: 'Archivado', color: neutral.steel },
 };
 
 export function RutasScreen() {
@@ -122,7 +123,7 @@ export function RutasScreen() {
     };
 
     const renderRouteCard = ({ item }: { item: UserRoute }) => {
-        const difficultyColor = DIFFICULTY_COLORS[item.difficulty] || neutral.gray500;
+        const difficultyColor = DIFFICULTY_COLORS[item.difficulty] || neutral.slate;
         const statusConfig = STATUS_CONFIG[item.status] || STATUS_CONFIG.borrador;
 
         return (
@@ -131,9 +132,14 @@ export function RutasScreen() {
                 onPress={() => router.push(`/route/${item.id}`)}
                 activeOpacity={0.7}
             >
-                {/* Image placeholder */}
+                {/* Image placeholder with gradient */}
                 <View style={styles.routeImage}>
-                    <Ionicons name="bicycle" size={32} color={neutral.gray400} />
+                    <LinearGradient
+                        colors={[`${difficultyColor}20`, `${difficultyColor}05`]}
+                        style={styles.routeImageGradient}
+                    >
+                        <Ionicons name="bicycle" size={28} color={difficultyColor} />
+                    </LinearGradient>
                     {/* Status badge for created routes */}
                     {activeTab === 'created' && (
                         <View style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}>
@@ -149,25 +155,25 @@ export function RutasScreen() {
 
                     <View style={styles.routeStats}>
                         <View style={styles.statItem}>
-                            <Ionicons name="map-outline" size={14} color={neutral.gray500} />
+                            <Ionicons name="map-outline" size={14} color={neutral.slate} />
                             <Text style={styles.statText}>{item.distanceKm.toFixed(1)} km</Text>
                         </View>
                         <View style={styles.statDot} />
                         <View style={styles.statItem}>
-                            <Ionicons name="time-outline" size={14} color={neutral.gray500} />
+                            <Ionicons name="time-outline" size={14} color={neutral.slate} />
                             <Text style={styles.statText}>{formatDuration(item.estimatedDurationMin)}</Text>
                         </View>
                     </View>
 
                     <View style={styles.routeFooter}>
-                        <View style={[styles.difficultyBadge, { backgroundColor: `${difficultyColor}20` }]}>
+                        <View style={[styles.difficultyBadge, { backgroundColor: `${difficultyColor}15` }]}>
                             <Text style={[styles.difficultyText, { color: difficultyColor }]}>
                                 {DIFFICULTY_LABELS[item.difficulty]}
                             </Text>
                         </View>
 
                         <View style={styles.ratingContainer}>
-                            <Ionicons name="star" size={14} color="#FBBF24" />
+                            <Ionicons name="star" size={14} color={accent.amber} />
                             <Text style={styles.ratingText}>
                                 {item.averageRating.toFixed(1)}
                             </Text>
@@ -178,7 +184,7 @@ export function RutasScreen() {
                     </View>
                 </View>
 
-                <Ionicons name="chevron-forward" size={20} color={neutral.gray400} />
+                <Ionicons name="chevron-forward" size={20} color={neutral.steel} />
             </TouchableOpacity>
         );
     };
@@ -213,12 +219,19 @@ export function RutasScreen() {
         return (
             <View style={styles.emptyState}>
                 <View style={styles.emptyIconContainer}>
-                    <Ionicons name={config.icon} size={48} color={neutral.gray400} />
+                    <Ionicons name={config.icon} size={48} color={neutral.steel} />
                 </View>
                 <Text style={styles.emptyTitle}>{config.title}</Text>
                 <Text style={styles.emptySubtitle}>{config.subtitle}</Text>
-                <TouchableOpacity style={styles.emptyButton} onPress={config.onPress}>
-                    <Text style={styles.emptyButtonText}>{config.buttonText}</Text>
+                <TouchableOpacity style={styles.emptyButton} onPress={config.onPress} activeOpacity={0.9}>
+                    <LinearGradient
+                        colors={[brand.primary, brand.gradient.end]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.emptyButtonGradient}
+                    >
+                        <Text style={styles.emptyButtonText}>{config.buttonText}</Text>
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
         );
@@ -226,16 +239,16 @@ export function RutasScreen() {
 
     const renderHeader = () => (
         <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-                <Text style={styles.statCardValue}>{purchasedRoutes.length}</Text>
+            <View style={[styles.statCard, { backgroundColor: accent.coralTint }]}>
+                <Text style={[styles.statCardValue, { color: accent.coral }]}>{purchasedRoutes.length}</Text>
                 <Text style={styles.statCardLabel}>Compradas</Text>
             </View>
-            <View style={styles.statCard}>
-                <Text style={styles.statCardValue}>{createdRoutes.length}</Text>
+            <View style={[styles.statCard, { backgroundColor: brand.primaryTint }]}>
+                <Text style={[styles.statCardValue, { color: brand.primary }]}>{createdRoutes.length}</Text>
                 <Text style={styles.statCardLabel}>Creadas</Text>
             </View>
-            <View style={styles.statCard}>
-                <Text style={styles.statCardValue}>{savedRoutes.length}</Text>
+            <View style={[styles.statCard, { backgroundColor: accent.violetTint }]}>
+                <Text style={[styles.statCardValue, { color: accent.violet }]}>{savedRoutes.length}</Text>
                 <Text style={styles.statCardLabel}>Guardadas</Text>
             </View>
         </View>
@@ -252,7 +265,12 @@ export function RutasScreen() {
                     style={styles.createButton}
                     onPress={() => router.push('/create-route')}
                 >
-                    <Ionicons name="add" size={24} color={brand.primary} />
+                    <LinearGradient
+                        colors={[brand.primary, brand.gradient.end]}
+                        style={styles.createButtonGradient}
+                    >
+                        <Ionicons name="add" size={22} color={neutral.white} />
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
 
@@ -267,7 +285,7 @@ export function RutasScreen() {
                         <Ionicons
                             name={tab.icon}
                             size={18}
-                            color={activeTab === tab.key ? brand.primary : neutral.gray500}
+                            color={activeTab === tab.key ? brand.primary : neutral.slate}
                         />
                         <Text style={[
                             styles.tabText,
@@ -313,41 +331,48 @@ export function RutasScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: neutral.white,
+        backgroundColor: neutral.snow,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         paddingVertical: 12,
+        backgroundColor: neutral.white,
     },
     headerTitle: {
         fontSize: 28,
-        fontWeight: 'bold',
-        color: neutral.gray800,
+        fontWeight: '700',
+        color: neutral.charcoal,
+        letterSpacing: -0.5,
     },
     createButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: `${brand.primary}15`,
+        borderRadius: radius.full,
+        overflow: 'hidden',
+        ...shadows.small,
+    },
+    createButtonGradient: {
+        width: 42,
+        height: 42,
         justifyContent: 'center',
         alignItems: 'center',
     },
     tabsContainer: {
         flexDirection: 'row',
         paddingHorizontal: 16,
-        marginBottom: 8,
+        backgroundColor: neutral.white,
+        borderBottomWidth: 1,
+        borderBottomColor: neutral.silver,
     },
     tab: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12,
+        paddingVertical: 14,
         gap: 6,
-        borderBottomWidth: 2,
+        borderBottomWidth: 3,
         borderBottomColor: 'transparent',
     },
     activeTab: {
@@ -356,7 +381,7 @@ const styles = StyleSheet.create({
     tabText: {
         fontSize: 14,
         fontWeight: '500',
-        color: neutral.gray500,
+        color: neutral.slate,
     },
     activeTabText: {
         color: brand.primary,
@@ -377,44 +402,42 @@ const styles = StyleSheet.create({
     statsContainer: {
         flexDirection: 'row',
         marginBottom: 16,
-        gap: 12,
+        gap: 10,
     },
     statCard: {
         flex: 1,
-        backgroundColor: neutral.gray50,
-        borderRadius: 12,
-        padding: 12,
+        borderRadius: radius.lg,
+        padding: 14,
         alignItems: 'center',
     },
     statCardValue: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: neutral.gray800,
+        fontSize: 26,
+        fontWeight: '700',
     },
     statCardLabel: {
         fontSize: 12,
-        color: neutral.gray500,
+        color: neutral.slate,
         marginTop: 2,
+        fontWeight: '500',
     },
     // Route card
     routeCard: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: neutral.white,
-        borderRadius: 16,
-        padding: 12,
+        borderRadius: radius.xl,
+        padding: 14,
         marginBottom: 12,
-        shadowColor: neutral.black,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
+        ...shadows.medium,
     },
     routeImage: {
         width: 72,
         height: 72,
-        backgroundColor: neutral.gray100,
-        borderRadius: 12,
+        borderRadius: radius.md,
+        overflow: 'hidden',
+    },
+    routeImageGradient: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -424,22 +447,22 @@ const styles = StyleSheet.create({
         left: 4,
         paddingHorizontal: 6,
         paddingVertical: 2,
-        borderRadius: 6,
+        borderRadius: radius.sm,
     },
     statusText: {
         fontSize: 9,
-        fontWeight: '600',
+        fontWeight: '700',
         color: neutral.white,
     },
     routeInfo: {
         flex: 1,
-        marginLeft: 12,
+        marginLeft: 14,
     },
     routeName: {
         fontSize: 16,
         fontWeight: '600',
-        color: neutral.gray800,
-        marginBottom: 4,
+        color: neutral.charcoal,
+        marginBottom: 6,
     },
     routeStats: {
         flexDirection: 'row',
@@ -453,14 +476,15 @@ const styles = StyleSheet.create({
     },
     statText: {
         fontSize: 13,
-        color: neutral.gray500,
+        color: neutral.slate,
+        fontWeight: '500',
     },
     statDot: {
-        width: 3,
-        height: 3,
-        borderRadius: 1.5,
-        backgroundColor: neutral.gray400,
-        marginHorizontal: 8,
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: neutral.mist,
+        marginHorizontal: 10,
     },
     routeFooter: {
         flexDirection: 'row',
@@ -468,27 +492,27 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     difficultyBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: radius.sm,
     },
     difficultyText: {
         fontSize: 11,
-        fontWeight: '600',
+        fontWeight: '700',
     },
     ratingContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 2,
+        gap: 3,
     },
     ratingText: {
         fontSize: 13,
-        fontWeight: '600',
-        color: neutral.gray800,
+        fontWeight: '700',
+        color: neutral.charcoal,
     },
     reviewsText: {
         fontSize: 12,
-        color: neutral.gray500,
+        color: neutral.slate,
     },
     // Empty state
     emptyState: {
@@ -498,37 +522,40 @@ const styles = StyleSheet.create({
         paddingHorizontal: 32,
     },
     emptyIconContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: neutral.gray100,
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        backgroundColor: neutral.pearl,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
     emptyTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: neutral.gray800,
+        color: neutral.charcoal,
         marginBottom: 8,
         textAlign: 'center',
     },
     emptySubtitle: {
         fontSize: 14,
-        color: neutral.gray500,
+        color: neutral.slate,
         textAlign: 'center',
-        marginBottom: 24,
+        marginBottom: 28,
         lineHeight: 20,
     },
     emptyButton: {
-        backgroundColor: brand.primary,
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 12,
+        borderRadius: radius.full,
+        overflow: 'hidden',
+        ...shadows.colored(brand.primary),
+    },
+    emptyButtonGradient: {
+        paddingHorizontal: 28,
+        paddingVertical: 14,
     },
     emptyButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 15,
+        fontWeight: '700',
         color: neutral.white,
     },
 });

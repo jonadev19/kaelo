@@ -1,6 +1,7 @@
-import { brand, neutral } from '@/constants/Colors';
+import { accessibleText, brand, neutral, radius, shadows, touchTarget } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
@@ -31,6 +32,7 @@ export function RegisterScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [focusedField, setFocusedField] = useState<string | null>(null);
     const { signUp } = useAuth();
 
     const handleRegister = async () => {
@@ -68,6 +70,65 @@ export function RegisterScreen() {
         Keyboard.dismiss();
     };
 
+    const renderInput = (
+        field: string,
+        icon: string,
+        placeholder: string,
+        value: string,
+        onChangeText: (text: string) => void,
+        options: {
+            secureTextEntry?: boolean;
+            showPassword?: boolean;
+            onTogglePassword?: () => void;
+            keyboardType?: 'default' | 'email-address';
+            autoCapitalize?: 'none' | 'words';
+            returnKeyType?: 'next' | 'done';
+            onSubmitEditing?: () => void;
+        } = {}
+    ) => (
+        <View style={[
+            styles.inputContainer,
+            focusedField === field && styles.inputContainerFocused
+        ]}>
+            <Ionicons
+                name={icon as any}
+                size={20}
+                color={focusedField === field ? brand.primary : neutral.steel}
+                style={styles.inputIcon}
+            />
+            <TextInput
+                style={styles.input}
+                placeholder={placeholder}
+                placeholderTextColor={accessibleText.placeholder}
+                value={value}
+                onChangeText={onChangeText}
+                secureTextEntry={options.secureTextEntry && !options.showPassword}
+                keyboardType={options.keyboardType || 'default'}
+                autoCapitalize={options.autoCapitalize || 'none'}
+                autoCorrect={false}
+                returnKeyType={options.returnKeyType || 'next'}
+                onSubmitEditing={options.onSubmitEditing}
+                onFocus={() => setFocusedField(field)}
+                onBlur={() => setFocusedField(null)}
+            />
+            {options.secureTextEntry && (
+                <TouchableOpacity
+                    onPress={options.onTogglePassword}
+                    style={styles.eyeIcon}
+                    accessibilityLabel={options.showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    accessibilityRole="button"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                    <Ionicons
+                        name={options.showPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={20}
+                        color={accessibleText.placeholder}
+                    />
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+
     return (
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
             <View style={styles.container}>
@@ -77,11 +138,24 @@ export function RegisterScreen() {
                     style={styles.backgroundImage}
                     resizeMode="cover"
                 >
+                    {/* Gradient Overlay */}
+                    <LinearGradient
+                        colors={['transparent', 'rgba(13, 148, 136, 0.3)']}
+                        style={StyleSheet.absoluteFill}
+                    />
+
                     {/* Top Section - Branding */}
                     <View style={styles.brandingContainer}>
                         <Text style={styles.logo}>Kaelo</Text>
                         <View style={styles.taglineContainer}>
-                            <Text style={styles.tagline}>Explora Yucatán en dos ruedas</Text>
+                            <LinearGradient
+                                colors={[brand.primary, brand.gradient.end]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.taglineGradient}
+                            >
+                                <Text style={styles.tagline}>Explora Yucatán en dos ruedas</Text>
+                            </LinearGradient>
                         </View>
                     </View>
                 </ImageBackground>
@@ -90,12 +164,13 @@ export function RegisterScreen() {
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.formContainer}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                    keyboardVerticalOffset={0}
                 >
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                         contentContainerStyle={styles.scrollContent}
+                        bounces={false}
                     >
                         <View style={styles.handle} />
 
@@ -104,103 +179,58 @@ export function RegisterScreen() {
 
                         {/* Name Input */}
                         <Text style={styles.inputLabel}>Nombre completo</Text>
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="person-outline" size={20} color={neutral.gray500} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Tu nombre"
-                                placeholderTextColor={neutral.gray400}
-                                value={name}
-                                onChangeText={setName}
-                                autoCapitalize="words"
-                                returnKeyType="next"
-                            />
-                        </View>
+                        {renderInput('name', 'person-outline', 'Tu nombre', name, setName, {
+                            autoCapitalize: 'words',
+                        })}
 
                         {/* Email Input */}
                         <Text style={styles.inputLabel}>Correo electrónico</Text>
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="mail-outline" size={20} color={neutral.gray500} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="aventurero@ejemplo.com"
-                                placeholderTextColor={neutral.gray400}
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                                returnKeyType="next"
-                            />
-                        </View>
+                        {renderInput('email', 'mail-outline', 'aventurero@ejemplo.com', email, setEmail, {
+                            keyboardType: 'email-address',
+                        })}
 
                         {/* Password Input */}
                         <Text style={styles.inputLabel}>Contraseña</Text>
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="lock-closed-outline" size={20} color={neutral.gray500} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Mínimo 6 caracteres"
-                                placeholderTextColor={neutral.gray400}
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry={!showPassword}
-                                autoCapitalize="none"
-                                returnKeyType="next"
-                            />
-                            <TouchableOpacity
-                                onPress={() => setShowPassword(!showPassword)}
-                                style={styles.eyeIcon}
-                            >
-                                <Ionicons
-                                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                                    size={20}
-                                    color={neutral.gray500}
-                                />
-                            </TouchableOpacity>
-                        </View>
+                        {renderInput('password', 'lock-closed-outline', 'Mínimo 6 caracteres', password, setPassword, {
+                            secureTextEntry: true,
+                            showPassword,
+                            onTogglePassword: () => setShowPassword(!showPassword),
+                        })}
 
                         {/* Confirm Password Input */}
                         <Text style={styles.inputLabel}>Confirmar contraseña</Text>
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="lock-closed-outline" size={20} color={neutral.gray500} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Repite tu contraseña"
-                                placeholderTextColor={neutral.gray400}
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                                secureTextEntry={!showConfirmPassword}
-                                autoCapitalize="none"
-                                returnKeyType="done"
-                                onSubmitEditing={handleRegister}
-                            />
-                            <TouchableOpacity
-                                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                                style={styles.eyeIcon}
-                            >
-                                <Ionicons
-                                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                                    size={20}
-                                    color={neutral.gray500}
-                                />
-                            </TouchableOpacity>
-                        </View>
+                        {renderInput('confirmPassword', 'lock-closed-outline', 'Repite tu contraseña', confirmPassword, setConfirmPassword, {
+                            secureTextEntry: true,
+                            showPassword: showConfirmPassword,
+                            onTogglePassword: () => setShowConfirmPassword(!showConfirmPassword),
+                            returnKeyType: 'done',
+                            onSubmitEditing: handleRegister,
+                        })}
 
-                        {/* Register Button */}
+                        {/* Register Button with Gradient */}
                         <TouchableOpacity
                             style={[styles.registerButton, loading && styles.registerButtonDisabled]}
                             onPress={handleRegister}
                             disabled={loading}
+                            activeOpacity={0.9}
                         >
-                            {loading ? (
-                                <ActivityIndicator color={neutral.white} />
-                            ) : (
-                                <>
-                                    <Text style={styles.registerButtonText}>Crear cuenta</Text>
-                                    <Ionicons name="arrow-forward" size={20} color={neutral.white} style={styles.buttonIcon} />
-                                </>
-                            )}
+                            <LinearGradient
+                                colors={[brand.primary, brand.gradient.end]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.registerButtonGradient}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color={neutral.white} />
+                                ) : (
+                                    <>
+                                        <Text style={styles.registerButtonText}>Crear cuenta</Text>
+                                        <View style={styles.buttonIconContainer}>
+                                            <Ionicons name="arrow-forward" size={18} color={neutral.white} />
+                                        </View>
+                                    </>
+                                )}
+                            </LinearGradient>
                         </TouchableOpacity>
 
                         {/* Login Link */}
@@ -222,10 +252,10 @@ export function RegisterScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: neutral.white,
+        backgroundColor: neutral.snow,
     },
     backgroundImage: {
-        height: height * 0.35,
+        height: height * 0.32,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -234,33 +264,38 @@ const styles = StyleSheet.create({
         marginTop: -20,
     },
     logo: {
-        fontSize: 42,
-        fontWeight: 'bold',
+        fontSize: 46,
+        fontWeight: '800',
         color: neutral.white,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
+        textShadowColor: 'rgba(0, 0, 0, 0.4)',
+        textShadowOffset: { width: 0, height: 3 },
+        textShadowRadius: 6,
+        letterSpacing: -1,
     },
     taglineContainer: {
-        backgroundColor: brand.primaryLight,
+        marginTop: 10,
+        borderRadius: radius.full,
+        overflow: 'hidden',
+    },
+    taglineGradient: {
         paddingHorizontal: 20,
         paddingVertical: 8,
-        borderRadius: 20,
-        marginTop: 8,
     },
     tagline: {
         color: neutral.white,
         fontSize: 13,
         fontWeight: '600',
+        letterSpacing: 0.3,
     },
     formContainer: {
         flex: 1,
         backgroundColor: neutral.white,
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
+        borderTopLeftRadius: radius.xxl,
+        borderTopRightRadius: radius.xxl,
         marginTop: -30,
-        paddingHorizontal: 24,
-        paddingTop: 12,
+        paddingHorizontal: 28,
+        paddingTop: 14,
+        ...shadows.large,
     },
     scrollContent: {
         flexGrow: 1,
@@ -268,39 +303,46 @@ const styles = StyleSheet.create({
     },
     handle: {
         width: 40,
-        height: 4,
-        backgroundColor: neutral.gray200,
-        borderRadius: 2,
+        height: 5,
+        backgroundColor: neutral.silver,
+        borderRadius: 3,
         alignSelf: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
     welcomeTitle: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        color: neutral.gray800,
+        fontSize: 28,
+        fontWeight: '700',
+        color: neutral.charcoal,
         textAlign: 'center',
         marginBottom: 6,
+        letterSpacing: -0.5,
     },
     welcomeSubtitle: {
         fontSize: 15,
-        color: neutral.gray500,
+        color: neutral.slate,
         textAlign: 'center',
-        marginBottom: 24,
+        marginBottom: 28,
     },
     inputLabel: {
         fontSize: 14,
         fontWeight: '600',
-        color: neutral.gray800,
-        marginBottom: 6,
+        color: neutral.charcoal,
+        marginBottom: 8,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: neutral.gray100,
-        borderRadius: 12,
+        backgroundColor: neutral.pearl,
+        borderRadius: radius.md,
         paddingHorizontal: 16,
-        marginBottom: 14,
-        height: 50,
+        marginBottom: 16,
+        height: 52,
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    inputContainerFocused: {
+        borderColor: brand.primary,
+        backgroundColor: neutral.white,
     },
     inputIcon: {
         marginRight: 12,
@@ -308,52 +350,60 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         fontSize: 15,
-        color: neutral.gray800,
+        color: neutral.charcoal,
     },
     eyeIcon: {
-        padding: 4,
-    },
-    registerButton: {
-        backgroundColor: brand.primary,
-        borderRadius: 30,
-        height: 54,
-        flexDirection: 'row',
+        padding: touchTarget.padding,
+        minWidth: touchTarget.min,
+        minHeight: touchTarget.min,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    registerButton: {
+        borderRadius: radius.full,
+        overflow: 'hidden',
         marginTop: 8,
-        marginBottom: 20,
-        shadowColor: brand.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        marginBottom: 24,
+        ...shadows.colored(brand.primary),
     },
     registerButtonDisabled: {
         opacity: 0.7,
     },
+    registerButtonGradient: {
+        height: 56,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
     registerButtonText: {
         color: neutral.white,
         fontSize: 17,
-        fontWeight: '600',
-        marginRight: 8,
+        fontWeight: '700',
+        marginRight: 10,
+        letterSpacing: 0.3,
     },
-    buttonIcon: {
-        marginLeft: 4,
+    buttonIconContainer: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     loginContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingBottom: 30,
+        paddingBottom: 20,
     },
     loginText: {
-        color: neutral.gray500,
-        fontSize: 14,
+        color: neutral.slate,
+        fontSize: 15,
     },
     loginLink: {
         color: brand.primary,
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 15,
+        fontWeight: '700',
     },
 });
-

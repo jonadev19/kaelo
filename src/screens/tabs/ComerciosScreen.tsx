@@ -3,7 +3,7 @@
  * Shows list of businesses near cycling routes
  */
 
-import { brand, neutral } from '@/constants/Colors';
+import { accent, accessibleText, brand, neutral, radius, shadows, typography } from '@/constants/Colors';
 import {
     BUSINESS_TYPE_ICONS,
     BUSINESS_TYPE_LABELS,
@@ -14,7 +14,7 @@ import {
 } from '@/services/businesses';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -24,21 +24,24 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
-// Business type filters
+// Business type filters with colors
 const BUSINESS_TYPES = [
-    { id: 'all', label: 'Todos', icon: 'grid-outline' },
-    { id: 'restaurante', label: 'Restaurantes', icon: 'restaurant' },
-    { id: 'cafeteria', label: 'Cafeterías', icon: 'cafe' },
-    { id: 'tienda', label: 'Tiendas', icon: 'storefront' },
-    { id: 'taller_bicicletas', label: 'Talleres', icon: 'build' },
-    { id: 'hospedaje', label: 'Hospedaje', icon: 'bed' },
+    { id: 'all', label: 'Todos', icon: 'grid-outline', color: brand.primary },
+    { id: 'restaurante', label: 'Restaurantes', icon: 'restaurant', color: accent.coral },
+    { id: 'cafeteria', label: 'Cafeterías', icon: 'cafe', color: accent.violet },
+    { id: 'tienda', label: 'Tiendas', icon: 'storefront', color: accent.sky },
+    { id: 'taller_bicicletas', label: 'Talleres', icon: 'build', color: neutral.graphite },
+    { id: 'hospedaje', label: 'Hospedaje', icon: 'bed', color: accent.emerald },
 ];
+
+// Debounce timeout in ms
+const SEARCH_DEBOUNCE_MS = 300;
 
 export function ComerciosScreen() {
     const router = useRouter();
@@ -49,6 +52,19 @@ export function ComerciosScreen() {
     const [searchText, setSearchText] = useState('');
     const [activeType, setActiveType] = useState('all');
     const [isSearching, setIsSearching] = useState(false);
+    const [hasSearched, setHasSearched] = useState(false);
+
+    // Debounce ref
+    const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Optimized stats calculation
+    const stats = useMemo(() => {
+        const count = businesses.length;
+        const avgRating = count > 0
+            ? businesses.reduce((acc, b) => acc + b.averageRating, 0) / count
+            : 0;
+        return { count, avgRating };
+    }, [businesses]);
 
     const loadBusinesses = useCallback(async (type: string = 'all') => {
         try {
@@ -77,11 +93,43 @@ export function ComerciosScreen() {
 
     const handleRefresh = () => {
         setIsRefreshing(true);
+        setHasSearched(false);
         loadBusinesses(activeType);
     };
 
+    // Debounced search handler
+    const handleSearchChange = useCallback((text: string) => {
+        setSearchText(text);
+
+        // Clear previous timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        if (!text.trim()) {
+            setHasSearched(false);
+            loadBusinesses(activeType);
+            return;
+        }
+
+        // Set debounced search
+        searchTimeoutRef.current = setTimeout(async () => {
+            try {
+                setIsSearching(true);
+                const results = await searchBusinesses(text.trim());
+                setBusinesses(results);
+                setHasSearched(true);
+            } catch (error) {
+                console.error('Error searching businesses:', error);
+            } finally {
+                setIsSearching(false);
+            }
+        }, SEARCH_DEBOUNCE_MS);
+    }, [activeType, loadBusinesses]);
+
     const handleSearch = async () => {
         if (!searchText.trim()) {
+            setHasSearched(false);
             loadBusinesses(activeType);
             return;
         }
@@ -90,6 +138,7 @@ export function ComerciosScreen() {
             setIsSearching(true);
             const results = await searchBusinesses(searchText.trim());
             setBusinesses(results);
+            setHasSearched(true);
         } catch (error) {
             console.error('Error searching businesses:', error);
         } finally {
@@ -108,71 +157,82 @@ export function ComerciosScreen() {
         return (BUSINESS_TYPE_ICONS[type] || 'storefront') as keyof typeof Ionicons.glyphMap;
     };
 
-    const renderBusinessCard = ({ item }: { item: BusinessDetail }) => (
-        <TouchableOpacity
-            style={styles.businessCard}
-            onPress={() => router.push(`/business/${item.id}`)}
-            activeOpacity={0.7}
-        >
-            {/* Image placeholder */}
-            <View style={styles.businessImage}>
-                <Ionicons
-                    name={getTypeIcon(item.type)}
-                    size={32}
-                    color={brand.primary}
-                />
-            </View>
+    const getTypeColor = (type: string): string => {
+        const typeObj = BUSINESS_TYPES.find(t => t.id === type);
+        return typeObj?.color || brand.primary;
+    };
 
-            <View style={styles.businessInfo}>
-                <View style={styles.businessHeader}>
-                    <Text style={styles.businessName} numberOfLines={1}>
-                        {item.name}
-                    </Text>
-                    <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#FBBF24" />
-                        <Text style={styles.ratingText}>
-                            {item.averageRating.toFixed(1)}
-                        </Text>
-                    </View>
+    const renderBusinessCard = ({ item }: { item: BusinessDetail }) => {
+        const typeColor = getTypeColor(item.type);
+
+        return (
+            <TouchableOpacity
+                style={styles.businessCard}
+                onPress={() => router.push(`/business/${item.id}`)}
+                activeOpacity={0.7}
+            >
+                {/* Image placeholder with colored icon */}
+                <View style={[styles.businessImage, { backgroundColor: `${typeColor}15` }]}>
+                    <Ionicons
+                        name={getTypeIcon(item.type)}
+                        size={28}
+                        color={typeColor}
+                    />
                 </View>
 
-                <View style={styles.businessMeta}>
-                    <View style={styles.typeBadge}>
-                        <Text style={styles.typeText}>
-                            {BUSINESS_TYPE_LABELS[item.type] || item.type}
+                <View style={styles.businessInfo}>
+                    <View style={styles.businessHeader}>
+                        <Text style={styles.businessName} numberOfLines={1}>
+                            {item.name}
                         </Text>
+                        <View style={styles.ratingContainer}>
+                            <Ionicons name="star" size={14} color={accent.amber} />
+                            <Text style={styles.ratingText}>
+                                {item.averageRating.toFixed(1)}
+                            </Text>
+                        </View>
                     </View>
-                    {item.totalReviews > 0 && (
-                        <Text style={styles.reviewsText}>
-                            ({item.totalReviews} reseñas)
+
+                    <View style={styles.businessMeta}>
+                        <View style={[styles.typeBadge, { backgroundColor: `${typeColor}15` }]}>
+                            <Text style={[styles.typeText, { color: typeColor }]}>
+                                {BUSINESS_TYPE_LABELS[item.type] || item.type}
+                            </Text>
+                        </View>
+                        {item.totalReviews > 0 && (
+                            <Text style={styles.reviewsText}>
+                                ({item.totalReviews} reseñas)
+                            </Text>
+                        )}
+                    </View>
+
+                    {item.address && (
+                        <View style={styles.addressRow}>
+                            <Ionicons name="location-outline" size={14} color={neutral.steel} />
+                            <Text style={styles.addressText} numberOfLines={1}>
+                                {item.address}
+                            </Text>
+                        </View>
+                    )}
+
+                    {item.description && (
+                        <Text style={styles.descriptionText} numberOfLines={2}>
+                            {item.description}
                         </Text>
                     )}
                 </View>
 
-                {item.address && (
-                    <View style={styles.addressRow}>
-                        <Ionicons name="location-outline" size={14} color={neutral.gray400} />
-                        <Text style={styles.addressText} numberOfLines={1}>
-                            {item.address}
-                        </Text>
-                    </View>
-                )}
-
-                {item.description && (
-                    <Text style={styles.descriptionText} numberOfLines={2}>
-                        {item.description}
-                    </Text>
-                )}
-            </View>
-
-            <Ionicons name="chevron-forward" size={20} color={neutral.gray400} />
-        </TouchableOpacity>
-    );
+                <View style={styles.chevronContainer}>
+                    <Ionicons name="chevron-forward" size={20} color={brand.primary} />
+                </View>
+            </TouchableOpacity>
+        );
+    };
 
     const renderEmptyState = () => (
         <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-                <Ionicons name="storefront-outline" size={48} color={neutral.gray400} />
+                <Ionicons name="storefront-outline" size={48} color={neutral.steel} />
             </View>
             <Text style={styles.emptyTitle}>No hay comercios</Text>
             <Text style={styles.emptySubtitle}>
@@ -185,21 +245,35 @@ export function ComerciosScreen() {
     );
 
     const renderHeader = () => (
-        <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-                <Ionicons name="storefront" size={24} color={brand.primary} />
-                <Text style={styles.statValue}>{businesses.length}</Text>
-                <Text style={styles.statLabel}>Comercios</Text>
-            </View>
-            <View style={styles.statCard}>
-                <Ionicons name="star" size={24} color="#FBBF24" />
-                <Text style={styles.statValue}>
-                    {businesses.length > 0
-                        ? (businesses.reduce((acc, b) => acc + b.averageRating, 0) / businesses.length).toFixed(1)
-                        : '0'
-                    }
-                </Text>
-                <Text style={styles.statLabel}>Rating Promedio</Text>
+        <View>
+            {/* Search Results Feedback */}
+            {hasSearched && (
+                <View style={styles.searchFeedback}>
+                    <Text style={styles.searchFeedbackText}>
+                        {stats.count} resultado{stats.count !== 1 ? 's' : ''} para "{searchText}"
+                    </Text>
+                    <TouchableOpacity onPress={() => {
+                        setSearchText('');
+                        setHasSearched(false);
+                        loadBusinesses(activeType);
+                    }}>
+                        <Text style={styles.clearSearchText}>Limpiar</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+            <View style={styles.statsContainer}>
+                <View style={styles.statCard}>
+                    <Ionicons name="storefront" size={24} color={brand.primary} />
+                    <Text style={styles.statValue}>{stats.count}</Text>
+                    <Text style={styles.statLabel}>Comercios</Text>
+                </View>
+                <View style={styles.statCard}>
+                    <Ionicons name="star" size={24} color={accent.amber} />
+                    <Text style={styles.statValue}>
+                        {stats.avgRating > 0 ? stats.avgRating.toFixed(1) : '—'}
+                    </Text>
+                    <Text style={styles.statLabel}>Rating Promedio</Text>
+                </View>
             </View>
         </View>
     );
@@ -213,14 +287,18 @@ export function ComerciosScreen() {
 
             {/* Search Bar */}
             <View style={styles.searchContainer}>
-                <View style={styles.searchBar}>
-                    <Ionicons name="search" size={20} color={neutral.gray400} />
+                <View style={[styles.searchBar, isSearching && styles.searchBarActive]}>
+                    <Ionicons
+                        name="search"
+                        size={20}
+                        color={isSearching ? brand.primary : neutral.steel}
+                    />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Buscar comercios..."
-                        placeholderTextColor={neutral.gray400}
+                        placeholderTextColor={accessibleText.placeholder}
                         value={searchText}
-                        onChangeText={setSearchText}
+                        onChangeText={handleSearchChange}
                         returnKeyType="search"
                         onSubmitEditing={handleSearch}
                     />
@@ -228,11 +306,16 @@ export function ComerciosScreen() {
                         <ActivityIndicator size="small" color={brand.primary} />
                     )}
                     {searchText.length > 0 && !isSearching && (
-                        <TouchableOpacity onPress={() => {
-                            setSearchText('');
-                            loadBusinesses(activeType);
-                        }}>
-                            <Ionicons name="close-circle" size={20} color={neutral.gray400} />
+                        <TouchableOpacity
+                            style={styles.clearButton}
+                            onPress={() => {
+                                setSearchText('');
+                                setHasSearched(false);
+                                loadBusinesses(activeType);
+                            }}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                            <Ionicons name="close-circle" size={20} color={neutral.steel} />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -245,27 +328,35 @@ export function ComerciosScreen() {
                 keyExtractor={(item) => item.id}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.typesContainer}
-                renderItem={({ item }) => (
-                    <TouchableOpacity
-                        style={[
-                            styles.typeChip,
-                            activeType === item.id && styles.typeChipActive,
-                        ]}
-                        onPress={() => handleTypeChange(item.id)}
-                    >
-                        <Ionicons
-                            name={item.icon as keyof typeof Ionicons.glyphMap}
-                            size={18}
-                            color={activeType === item.id ? neutral.white : neutral.gray700}
-                        />
-                        <Text style={[
-                            styles.typeChipText,
-                            activeType === item.id && styles.typeChipTextActive,
-                        ]}>
-                            {item.label}
-                        </Text>
-                    </TouchableOpacity>
-                )}
+                renderItem={({ item }) => {
+                    const isActive = activeType === item.id;
+                    return (
+                        <TouchableOpacity
+                            style={[
+                                styles.typeChip,
+                                isActive && [
+                                    { backgroundColor: item.color, transform: [{ scale: 1.05 }] },
+                                    styles.typeChipActive,
+                                    shadows.colored(item.color),
+                                ],
+                            ]}
+                            onPress={() => handleTypeChange(item.id)}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name={item.icon as keyof typeof Ionicons.glyphMap}
+                                size={18}
+                                color={isActive ? neutral.white : item.color}
+                            />
+                            <Text style={[
+                                styles.typeChipText,
+                                isActive && styles.typeChipTextActive,
+                            ]}>
+                                {item.label}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                }}
             />
 
             {/* Content */}
@@ -301,57 +392,74 @@ export function ComerciosScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: neutral.white,
+        backgroundColor: neutral.snow,
     },
     header: {
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         paddingVertical: 12,
+        backgroundColor: neutral.white,
     },
     headerTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: neutral.gray800,
+        fontSize: typography.headingLg,
+        fontWeight: '700',
+        color: neutral.charcoal,
+        letterSpacing: -0.5,
     },
     searchContainer: {
-        paddingHorizontal: 16,
-        marginBottom: 12,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        backgroundColor: neutral.white,
     },
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: neutral.gray100,
-        borderRadius: 12,
+        backgroundColor: neutral.pearl,
+        borderRadius: radius.md,
         paddingHorizontal: 16,
-        height: 48,
+        height: 50,
+        borderWidth: 1,
+        borderColor: neutral.silver,
+    },
+    searchBarActive: {
+        borderColor: brand.primary,
+        backgroundColor: neutral.white,
+    },
+    clearButton: {
+        padding: 4,
     },
     searchInput: {
         flex: 1,
         marginLeft: 12,
-        fontSize: 16,
-        color: neutral.gray800,
+        fontSize: typography.bodyLg,
+        color: neutral.charcoal,
     },
     typesContainer: {
         paddingHorizontal: 16,
-        paddingBottom: 12,
+        paddingVertical: 12,
+        backgroundColor: neutral.white,
         gap: 8,
     },
     typeChip: {
+        transform: [{ scale: 1 }],
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 20,
-        backgroundColor: neutral.gray100,
-        marginRight: 8,
-        gap: 6,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        minHeight: 44, // WCAG 2.5.5 touch target
+        borderRadius: radius.full,
+        backgroundColor: neutral.pearl,
+        marginRight: 10,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: neutral.silver,
     },
     typeChipActive: {
-        backgroundColor: brand.primary,
+        borderColor: 'transparent',
     },
     typeChipText: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: neutral.gray700,
+        fontSize: typography.bodySm,
+        fontWeight: '600',
+        color: neutral.graphite,
     },
     typeChipTextActive: {
         color: neutral.white,
@@ -375,47 +483,44 @@ const styles = StyleSheet.create({
     },
     statCard: {
         flex: 1,
-        backgroundColor: neutral.gray50,
-        borderRadius: 12,
+        backgroundColor: neutral.white,
+        borderRadius: radius.lg,
         padding: 16,
         alignItems: 'center',
+        ...shadows.small,
     },
     statValue: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: neutral.gray800,
+        fontSize: typography.headingMd,
+        fontWeight: '700',
+        color: neutral.charcoal,
         marginTop: 8,
     },
     statLabel: {
-        fontSize: 12,
-        color: neutral.gray500,
+        fontSize: typography.caption,
+        color: neutral.slate,
         marginTop: 4,
+        fontWeight: '500',
     },
     // Business card
     businessCard: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: neutral.white,
-        borderRadius: 16,
-        padding: 12,
+        borderRadius: radius.xl,
+        padding: 14,
         marginBottom: 12,
-        shadowColor: neutral.black,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
+        ...shadows.medium,
     },
     businessImage: {
-        width: 72,
-        height: 72,
-        backgroundColor: `${brand.primary}15`,
-        borderRadius: 12,
+        width: 68,
+        height: 68,
+        borderRadius: radius.md,
         justifyContent: 'center',
         alignItems: 'center',
     },
     businessInfo: {
         flex: 1,
-        marginLeft: 12,
+        marginLeft: 14,
     },
     businessHeader: {
         flexDirection: 'row',
@@ -425,20 +530,20 @@ const styles = StyleSheet.create({
     },
     businessName: {
         flex: 1,
-        fontSize: 16,
+        fontSize: typography.bodyLg,
         fontWeight: '600',
-        color: neutral.gray800,
+        color: neutral.charcoal,
         marginRight: 8,
     },
     ratingContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 2,
+        gap: 3,
     },
     ratingText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: neutral.gray800,
+        fontSize: typography.bodySm,
+        fontWeight: '700',
+        color: neutral.charcoal,
     },
     businessMeta: {
         flexDirection: 'row',
@@ -447,19 +552,17 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     typeBadge: {
-        backgroundColor: neutral.gray100,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: radius.sm,
     },
     typeText: {
-        fontSize: 11,
-        fontWeight: '500',
-        color: neutral.gray700,
+        fontSize: typography.micro,
+        fontWeight: '600',
     },
     reviewsText: {
-        fontSize: 12,
-        color: neutral.gray500,
+        fontSize: typography.caption,
+        color: neutral.slate,
     },
     addressRow: {
         flexDirection: 'row',
@@ -469,12 +572,12 @@ const styles = StyleSheet.create({
     },
     addressText: {
         flex: 1,
-        fontSize: 12,
-        color: neutral.gray500,
+        fontSize: typography.caption,
+        color: neutral.slate,
     },
     descriptionText: {
-        fontSize: 12,
-        color: neutral.gray500,
+        fontSize: typography.caption,
+        color: neutral.slate,
         lineHeight: 16,
     },
     // Empty state
@@ -485,24 +588,56 @@ const styles = StyleSheet.create({
         paddingHorizontal: 32,
     },
     emptyIconContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: neutral.gray100,
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        backgroundColor: neutral.pearl,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
     emptyTitle: {
-        fontSize: 18,
+        fontSize: typography.headingSm,
         fontWeight: '600',
-        color: neutral.gray800,
+        color: neutral.charcoal,
         marginBottom: 8,
     },
     emptySubtitle: {
-        fontSize: 14,
-        color: neutral.gray500,
+        fontSize: typography.bodySm,
+        color: neutral.slate,
         textAlign: 'center',
         lineHeight: 20,
+    },
+    // Search feedback
+    searchFeedback: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+        paddingVertical: 8,
+        marginBottom: 12,
+        backgroundColor: brand.primaryTint,
+        borderRadius: radius.sm,
+        paddingLeft: 12,
+        paddingRight: 12,
+    },
+    searchFeedbackText: {
+        fontSize: typography.bodySm,
+        color: brand.primaryDark,
+        fontWeight: '500',
+    },
+    clearSearchText: {
+        fontSize: typography.bodySm,
+        color: brand.primary,
+        fontWeight: '600',
+    },
+    // Chevron container
+    chevronContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: brand.primaryTint,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

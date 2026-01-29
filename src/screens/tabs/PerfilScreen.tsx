@@ -1,4 +1,4 @@
-import { brand, neutral } from "@/constants/Colors";
+import { accent, brand, neutral, radius, semantic, shadows } from "@/constants/Colors";
 import { useAuth } from "@/context/AuthContext";
 import {
   getMyProfile,
@@ -7,7 +7,10 @@ import {
   UserProfile,
   UserStats,
 } from "@/services/profile";
+import { formatCurrency, formatNumber } from "@/utils/format";
+import { getLocationEnabled, setLocationEnabled as saveLocationEnabled } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -32,15 +35,18 @@ export function PerfilScreen() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   const loadProfile = useCallback(async () => {
     try {
-      const [profileData, statsData] = await Promise.all([
+      const [profileData, statsData, locationPref] = await Promise.all([
         getMyProfile(),
         getMyStats(),
+        getLocationEnabled(),
       ]);
       setProfile(profileData);
       setStats(statsData);
+      setIsLocationEnabled(locationPref);
     } catch (error) {
       console.error("Error loading profile:", error);
     } finally {
@@ -58,6 +64,24 @@ export function PerfilScreen() {
   const handleRefresh = () => {
     setIsRefreshing(true);
     loadProfile();
+  };
+
+  const handleLocationToggle = async (value: boolean) => {
+    setIsLocationEnabled(value);
+    await saveLocationEnabled(value);
+  };
+
+  const handleLocationHistory = () => {
+    Alert.alert(
+      "Historial de Ubicación",
+      "Esta función te permitirá gestionar tu historial de ubicaciones compartidas.",
+      [
+        {
+          text: "Entendido",
+          style: "default",
+        },
+      ]
+    );
   };
 
   const handleLogout = () => {
@@ -85,13 +109,15 @@ export function PerfilScreen() {
     : { label: "CICLISTA", icon: "bicycle" };
   const displayName =
     profile?.fullName || user?.email?.split("@")[0] || "Usuario";
-  const avatarUrl =
-    profile?.avatarUrl ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2DD4BF&color=fff&size=200`;
+
+  // Use fallback avatar if error or no custom avatar
+  const avatarUrl = avatarError || !profile?.avatarUrl
+    ? `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D9488&color=fff&size=200`
+    : profile.avatarUrl;
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={brand.primary} />
         </View>
@@ -100,15 +126,17 @@ export function PerfilScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <View style={styles.headerSpacer} />
         <Text style={styles.headerTitle}>Perfil</Text>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={() => router.push("/edit-profile")}
+          accessibilityLabel="Abrir configuración"
+          accessibilityRole="button"
         >
-          <Ionicons name="settings-outline" size={24} color={neutral.gray700} />
+          <Ionicons name="settings-outline" size={24} color={neutral.graphite} />
         </TouchableOpacity>
       </View>
 
@@ -127,10 +155,21 @@ export function PerfilScreen() {
         {/* Profile Info */}
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            <LinearGradient
+              colors={[brand.primary, brand.gradient.end]}
+              style={styles.avatarGradient}
+            >
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatar}
+                onError={() => setAvatarError(true)}
+              />
+            </LinearGradient>
             <TouchableOpacity
               style={styles.cameraButton}
               onPress={() => router.push("/edit-profile")}
+              accessibilityLabel="Cambiar foto de perfil"
+              accessibilityRole="button"
             >
               <Ionicons name="camera" size={16} color={neutral.white} />
             </TouchableOpacity>
@@ -148,31 +187,37 @@ export function PerfilScreen() {
 
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <View
-              style={[styles.statIconContainer, { backgroundColor: "#FFEDD5" }]}
-            >
-              <Ionicons name="map" size={20} color="#F97316" />
+          <View
+            style={styles.statCard}
+            accessibilityLabel={`${stats?.totalRoutes || 0} rutas completadas`}
+            accessibilityRole="text"
+          >
+            <View style={[styles.statIconContainer, { backgroundColor: accent.coralTint }]}>
+              <Ionicons name="map" size={20} color={accent.coral} />
             </View>
-            <Text style={styles.statValue}>{stats?.totalRoutes || 0}</Text>
+            <Text style={styles.statValue}>{formatNumber(stats?.totalRoutes || 0)}</Text>
             <Text style={styles.statLabel}>Rutas</Text>
           </View>
-          <View style={styles.statCard}>
-            <View
-              style={[styles.statIconContainer, { backgroundColor: "#E0F2F1" }]}
-            >
+          <View
+            style={styles.statCard}
+            accessibilityLabel={`${stats?.totalKilometers || 0} kilómetros recorridos`}
+            accessibilityRole="text"
+          >
+            <View style={[styles.statIconContainer, { backgroundColor: brand.primaryTint }]}>
               <Ionicons name="bicycle" size={20} color={brand.primary} />
             </View>
-            <Text style={styles.statValue}>{stats?.totalKilometers || 0}</Text>
+            <Text style={styles.statValue}>{formatNumber(stats?.totalKilometers || 0)}</Text>
             <Text style={styles.statLabel}>Kilómetros</Text>
           </View>
-          <View style={styles.statCard}>
-            <View
-              style={[styles.statIconContainer, { backgroundColor: "#FEF9C3" }]}
-            >
-              <Ionicons name="bag-handle" size={20} color="#EAB308" />
+          <View
+            style={styles.statCard}
+            accessibilityLabel={`${stats?.totalOrders || 0} pedidos realizados`}
+            accessibilityRole="text"
+          >
+            <View style={[styles.statIconContainer, { backgroundColor: accent.amberTint }]}>
+              <Ionicons name="bag-handle" size={20} color={accent.amber} />
             </View>
-            <Text style={styles.statValue}>{stats?.totalOrders || 0}</Text>
+            <Text style={styles.statValue}>{formatNumber(stats?.totalOrders || 0)}</Text>
             <Text style={styles.statLabel}>Pedidos</Text>
           </View>
         </View>
@@ -182,15 +227,19 @@ export function PerfilScreen() {
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push("/orders")}
+            activeOpacity={0.7}
+            accessibilityLabel="Ver mis pedidos"
+            accessibilityRole="button"
+            accessibilityHint="Abre la pantalla de pedidos realizados"
           >
             <View style={styles.menuIconBox}>
-              <Ionicons name="bag-handle" size={20} color={neutral.gray700} />
+              <Ionicons name="bag-handle" size={20} color={neutral.graphite} />
             </View>
             <Text style={styles.menuText}>Mis Pedidos</Text>
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={neutral.gray400}
+              color={neutral.steel}
             />
           </TouchableOpacity>
 
@@ -198,10 +247,14 @@ export function PerfilScreen() {
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => router.push("/(tabs)/rutas")}
+            onPress={() => router.push("/saved-routes")}
+            activeOpacity={0.7}
+            accessibilityLabel={`Mis rutas guardadas, ${stats?.savedRoutes || 0} rutas`}
+            accessibilityRole="button"
+            accessibilityHint="Abre la pantalla de rutas guardadas"
           >
             <View style={styles.menuIconBox}>
-              <Ionicons name="heart" size={20} color={neutral.gray700} />
+              <Ionicons name="heart" size={20} color={neutral.graphite} />
             </View>
             <Text style={styles.menuText}>Mis Rutas Guardadas</Text>
             {stats && stats.savedRoutes > 0 && (
@@ -212,7 +265,7 @@ export function PerfilScreen() {
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={neutral.gray400}
+              color={neutral.steel}
             />
           </TouchableOpacity>
 
@@ -226,18 +279,22 @@ export function PerfilScreen() {
                 "Los métodos de pago estarán disponibles pronto",
               )
             }
+            activeOpacity={0.7}
+            accessibilityLabel={`Wallet, saldo actual ${formatCurrency(profile?.walletBalance || 0)}`}
+            accessibilityRole="button"
+            accessibilityHint="Gestiona tu saldo y métodos de pago"
           >
             <View style={styles.menuIconBox}>
-              <Ionicons name="wallet" size={20} color={neutral.gray700} />
+              <Ionicons name="wallet" size={20} color={neutral.graphite} />
             </View>
             <Text style={styles.menuText}>Wallet</Text>
             <Text style={styles.walletBalance}>
-              ${(profile?.walletBalance || 0).toFixed(2)}
+              {formatCurrency(profile?.walletBalance || 0)}
             </Text>
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={neutral.gray400}
+              color={neutral.steel}
             />
           </TouchableOpacity>
         </View>
@@ -247,8 +304,8 @@ export function PerfilScreen() {
 
         <View style={styles.securityContainer}>
           <View style={styles.securityRow}>
-            <View style={styles.securityIconBox}>
-              <Ionicons name="locate" size={22} color="#3B82F6" />
+            <View style={[styles.securityIconBox, { backgroundColor: accent.skyTint }]}>
+              <Ionicons name="locate" size={22} color={accent.sky} />
             </View>
             <View style={styles.securityInfo}>
               <Text style={styles.securityTitle}>Ubicación en tiempo real</Text>
@@ -258,14 +315,25 @@ export function PerfilScreen() {
             </View>
             <Switch
               value={isLocationEnabled}
-              onValueChange={setIsLocationEnabled}
-              trackColor={{ false: neutral.gray200, true: brand.primary }}
+              onValueChange={handleLocationToggle}
+              trackColor={{ false: neutral.silver, true: brand.primaryLight }}
               thumbColor={neutral.white}
+              ios_backgroundColor={neutral.silver}
+              accessibilityLabel="Compartir ubicación en tiempo real"
+              accessibilityRole="switch"
+              accessibilityState={{ checked: isLocationEnabled }}
             />
           </View>
 
-          <TouchableOpacity style={styles.historyButton}>
-            <Ionicons name="time-outline" size={20} color={neutral.gray700} />
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={handleLocationHistory}
+            activeOpacity={0.7}
+            accessibilityLabel="Gestionar historial de ubicación"
+            accessibilityRole="button"
+            accessibilityHint="Abre las opciones para gestionar tu historial de ubicaciones"
+          >
+            <Ionicons name="time-outline" size={20} color={neutral.graphite} />
             <Text style={styles.historyButtonText}>
               Gestionar Historial de Ubicación
             </Text>
@@ -273,11 +341,19 @@ export function PerfilScreen() {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+          accessibilityLabel="Cerrar sesión"
+          accessibilityRole="button"
+          accessibilityHint="Cierra tu sesión actual"
+        >
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+        {/* Bottom spacing to prevent tab bar overlap */}
+        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -295,7 +371,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB", // Slight off-white mostly for background
+    backgroundColor: neutral.snow,
   },
   contentContainer: {
     paddingHorizontal: 20,
@@ -321,55 +397,59 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: neutral.gray800,
-  },
-  editButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: brand.primary,
+    color: neutral.charcoal,
   },
   profileSection: {
     alignItems: "center",
     marginTop: 20,
-    marginBottom: 24,
+    marginBottom: 28,
   },
   avatarContainer: {
     position: "relative",
     marginBottom: 16,
   },
+  avatarGradient: {
+    width: 108,
+    height: 108,
+    borderRadius: 54,
+    padding: 4,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    borderWidth: 3,
-    borderColor: "#E0F2F1", // Light turquoise ring
+    backgroundColor: neutral.white,
   },
   cameraButton: {
     position: "absolute",
     bottom: 0,
     right: 0,
     backgroundColor: brand.primary,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 3,
     borderColor: neutral.white,
+    ...shadows.small,
   },
   userName: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
-    color: neutral.gray900,
-    marginBottom: 8,
+    color: neutral.charcoal,
+    marginBottom: 10,
+    letterSpacing: -0.3,
   },
   userBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E0F2F1",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    backgroundColor: brand.primaryTint,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.full,
     gap: 6,
   },
   userBadgeText: {
@@ -382,48 +462,42 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 24,
+    gap: 12,
   },
   statCard: {
     flex: 1,
     backgroundColor: neutral.white,
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: radius.xl,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
     alignItems: "center",
-    marginHorizontal: 6,
-    shadowColor: neutral.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    ...shadows.medium,
   },
   statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
-    color: neutral.gray900,
+    color: neutral.charcoal,
   },
   statLabel: {
     fontSize: 12,
-    color: neutral.gray500,
-    marginTop: 2,
+    color: neutral.slate,
+    marginTop: 4,
+    fontWeight: "500",
   },
   menuContainer: {
     backgroundColor: neutral.white,
-    borderRadius: 24,
+    borderRadius: radius.xxl,
     padding: 8,
     marginBottom: 24,
-    shadowColor: neutral.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    ...shadows.medium,
   },
   menuItem: {
     flexDirection: "row",
@@ -431,61 +505,57 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   menuIconBox: {
-    width: 36,
-    height: 36,
-    backgroundColor: neutral.gray100,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    backgroundColor: neutral.pearl,
+    borderRadius: radius.sm,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 14,
   },
   menuText: {
     flex: 1,
     fontSize: 15,
     fontWeight: "600",
-    color: neutral.gray800,
+    color: neutral.charcoal,
   },
   separator: {
     height: 1,
-    backgroundColor: neutral.gray100,
-    marginLeft: 64, // Align with text
+    backgroundColor: neutral.pearl,
+    marginLeft: 40 + 14 + 16, // menuIconBox width + marginRight + menuItem paddingLeft
   },
   menuBadge: {
     backgroundColor: brand.primary,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginRight: 8,
+    borderRadius: radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 10,
   },
   menuBadgeText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
     color: neutral.white,
   },
   walletBalance: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
     color: brand.primary,
-    marginRight: 8,
+    marginRight: 10,
   },
   sectionHeader: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
-    color: neutral.gray500,
+    color: neutral.slate,
     marginBottom: 12,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginLeft: 4,
   },
   securityContainer: {
     backgroundColor: neutral.white,
-    borderRadius: 24,
+    borderRadius: radius.xxl,
     padding: 20,
-    marginBottom: 24,
-    shadowColor: neutral.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 28,
+    ...shadows.medium,
   },
   securityRow: {
     flexDirection: "row",
@@ -493,13 +563,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   securityIconBox: {
-    width: 40,
-    height: 40,
-    backgroundColor: "#EFF6FF",
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 14,
   },
   securityInfo: {
     flex: 1,
@@ -507,35 +576,35 @@ const styles = StyleSheet.create({
   securityTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: neutral.gray800,
+    color: neutral.charcoal,
   },
   securitySubtitle: {
-    fontSize: 12,
-    color: neutral.gray500,
+    fontSize: 13,
+    color: neutral.slate,
     marginTop: 2,
   },
   historyButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: neutral.gray200,
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: neutral.silver,
     gap: 8,
   },
   historyButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: neutral.gray700,
+    color: neutral.graphite,
   },
   logoutButton: {
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
   logoutText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#EF4444", // Red 500
+    color: semantic.error,
   },
 });
