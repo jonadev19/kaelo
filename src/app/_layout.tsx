@@ -1,3 +1,4 @@
+import { brand, neutral } from "@/constants/Colors";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
   DarkTheme,
@@ -75,7 +76,8 @@ function RootLayoutNav() {
       segments[0] === "orders" ||
       segments[0] === "order" ||
       segments[0] === "edit-profile" ||
-      segments[0] === "payment"; // Protected routes
+      segments[0] === "payment" ||
+      segments[0] === "metrics"; // Protected routes
 
     if (!session && (inAuthGroup || inProtectedRoute)) {
       // Redirect to login if not authenticated and trying to access protected routes
@@ -98,10 +100,10 @@ function RootLayoutNav() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#fff",
+          backgroundColor: neutral.snow,
         }}
       >
-        <ActivityIndicator size="large" color="#2DD4BF" />
+        <ActivityIndicator size="large" color={brand.primary} />
       </View>
     );
   }
@@ -126,6 +128,7 @@ function RootLayoutNav() {
           <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
           <Stack.Screen name="payment" options={{ headerShown: false }} />
+          <Stack.Screen name="metrics" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: "modal" }} />
         </Stack>
       </CartProvider>

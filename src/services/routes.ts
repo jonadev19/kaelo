@@ -3,6 +3,7 @@
  * Handles all route-related API calls to Supabase
  */
 
+import { apiCache, CacheKeys, CacheTTL } from '@/lib/cache';
 import { supabase } from '@/lib/supabase';
 import type {
     BusinessForMap,
@@ -85,6 +86,10 @@ function transformRouteForMap(route: Route): RouteForMap | null {
  * Fetch all published routes
  */
 export async function getPublishedRoutes(): Promise<RouteForMap[]> {
+    const cacheKey = CacheKeys.publishedRoutes();
+    const cached = apiCache.get<RouteForMap[]>(cacheKey);
+    if (cached) return cached;
+
     const { data, error } = await supabase
         .from('routes')
         .select(`
@@ -106,9 +111,12 @@ export async function getPublishedRoutes(): Promise<RouteForMap[]> {
     if (!data) return [];
 
     // Transform and filter out invalid routes
-    return data
+    const routes = data
         .map(transformRouteForMap)
         .filter((route): route is RouteForMap => route !== null);
+
+    apiCache.set(cacheKey, routes, CacheTTL.MEDIUM);
+    return routes;
 }
 
 /**
@@ -137,6 +145,10 @@ export async function getRoutesNearLocation(
  * Fetch a single route by ID with full details
  */
 export async function getRouteById(routeId: string): Promise<RouteForMap | null> {
+    const cacheKey = CacheKeys.routeById(routeId);
+    const cached = apiCache.get<RouteForMap | null>(cacheKey);
+    if (cached !== null) return cached;
+
     const { data, error } = await supabase
         .from('routes')
         .select(`
@@ -157,7 +169,9 @@ export async function getRouteById(routeId: string): Promise<RouteForMap | null>
 
     if (!data) return null;
 
-    return transformRouteForMap(data);
+    const route = transformRouteForMap(data);
+    apiCache.set(cacheKey, route, CacheTTL.LONG);
+    return route;
 }
 
 /**
@@ -192,6 +206,10 @@ export async function getRouteBySlug(slug: string): Promise<RouteForMap | null> 
  * Fetch waypoints for a route
  */
 export async function getRouteWaypoints(routeId: string): Promise<RouteWaypoint[]> {
+    const cacheKey = CacheKeys.routeWaypoints(routeId);
+    const cached = apiCache.get<RouteWaypoint[]>(cacheKey);
+    if (cached) return cached;
+
     const { data, error } = await supabase
         .from('route_waypoints')
         .select('*')
@@ -203,7 +221,9 @@ export async function getRouteWaypoints(routeId: string): Promise<RouteWaypoint[
         throw error;
     }
 
-    return data || [];
+    const waypoints = data || [];
+    apiCache.set(cacheKey, waypoints, CacheTTL.LONG);
+    return waypoints;
 }
 
 /**
@@ -213,6 +233,10 @@ export async function getBusinessesNearRoute(
     routeId: string,
     radiusMeters: number = 500
 ): Promise<BusinessForMap[]> {
+    const cacheKey = CacheKeys.businessesNearRoute(routeId, radiusMeters);
+    const cached = apiCache.get<BusinessForMap[]>(cacheKey);
+    if (cached) return cached;
+
     const { data, error } = await supabase.rpc('find_businesses_near_route', {
         target_route_id: routeId,
         radius_m: radiusMeters,
@@ -226,7 +250,7 @@ export async function getBusinessesNearRoute(
     if (!data) return [];
 
     // Transform to BusinessForMap format
-    return data.map((business: NearbyBusinessResult) => ({
+    const businesses = data.map((business: NearbyBusinessResult) => ({
         id: business.business_id,
         name: business.name,
         type: business.business_type,
@@ -239,6 +263,9 @@ export async function getBusinessesNearRoute(
         logoUrl: null,
         averageRating: 0,
     }));
+
+    apiCache.set(cacheKey, businesses, CacheTTL.MEDIUM);
+    return businesses;
 }
 
 /**

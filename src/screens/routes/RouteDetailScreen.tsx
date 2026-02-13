@@ -3,6 +3,7 @@
  * Shows complete information about a route including waypoints, nearby businesses, and purchase options
  */
 
+import { RouteUserStats } from "@/components/metrics";
 import RouteReviews from "@/components/RouteReviews";
 import { brand, neutral, semantic } from "@/constants/Colors";
 import { supabase } from "@/lib/supabase";
@@ -95,8 +96,10 @@ export default function RouteDetailScreen() {
   const [waypoints, setWaypoints] = useState<RouteWaypoint[]>([]);
   const [businesses, setBusinesses] = useState<BusinessForMap[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingBusinesses, setIsLoadingBusinesses] = useState(false);
+  const [businessesLoaded, setBusinessesLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "info" | "waypoints" | "businesses"
+    "info" | "waypoints" | "businesses" | "progress"
   >("info");
   const [hasAccess, setHasAccess] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -112,16 +115,14 @@ export default function RouteDetailScreen() {
     try {
       setIsLoading(true);
 
-      // Fetch route, waypoints, and businesses in parallel
-      const [routeData, waypointsData, businessesData] = await Promise.all([
+      // Fetch route and waypoints only - businesses loaded lazily
+      const [routeData, waypointsData] = await Promise.all([
         getRouteById(routeId),
         getRouteWaypoints(routeId),
-        getBusinessesNearRoute(routeId, 1000),
       ]);
 
       setRoute(routeData);
       setWaypoints(waypointsData);
-      setBusinesses(businessesData);
 
       // Check if user has access to this route and if it's saved
       if (routeData) {
@@ -149,6 +150,29 @@ export default function RouteDetailScreen() {
       setIsLoading(false);
     }
   };
+
+  // Lazy load businesses when tab is selected
+  const loadBusinesses = async (routeId: string) => {
+    if (businessesLoaded || isLoadingBusinesses) return;
+
+    try {
+      setIsLoadingBusinesses(true);
+      const businessesData = await getBusinessesNearRoute(routeId, 1000);
+      setBusinesses(businessesData);
+      setBusinessesLoaded(true);
+    } catch (error) {
+      console.error("Error loading businesses:", error);
+    } finally {
+      setIsLoadingBusinesses(false);
+    }
+  };
+
+  // Load businesses when businesses tab is selected
+  useEffect(() => {
+    if (activeTab === "businesses" && id && !businessesLoaded) {
+      loadBusinesses(id);
+    }
+  }, [activeTab, id, businessesLoaded]);
 
   const checkUserAccess = async (routeId: string, isFree: boolean) => {
     // Free routes are accessible to everyone
@@ -545,7 +569,23 @@ export default function RouteDetailScreen() {
                   activeTab === "businesses" && styles.activeTabText,
                 ]}
               >
-                Comercios ({businesses.length})
+                Cerca {businessesLoaded ? `(${businesses.length})` : ""}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.tab,
+                activeTab === "progress" && styles.activeTab,
+              ]}
+              onPress={() => setActiveTab("progress")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "progress" && styles.activeTabText,
+                ]}
+              >
+                Progreso
               </Text>
             </TouchableOpacity>
           </View>
@@ -636,7 +676,14 @@ export default function RouteDetailScreen() {
 
           {activeTab === "businesses" && (
             <View style={styles.section}>
-              {businesses.length === 0 ? (
+              {isLoadingBusinesses ? (
+                <View style={styles.emptyState}>
+                  <ActivityIndicator size="small" color={brand.primary} />
+                  <Text style={styles.emptyStateText}>
+                    Cargando comercios cercanos...
+                  </Text>
+                </View>
+              ) : businesses.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Ionicons
                     name="storefront-outline"
@@ -674,6 +721,12 @@ export default function RouteDetailScreen() {
                   </TouchableOpacity>
                 ))
               )}
+            </View>
+          )}
+
+          {activeTab === "progress" && (
+            <View style={styles.section}>
+              <RouteUserStats routeId={id!} />
             </View>
           )}
 

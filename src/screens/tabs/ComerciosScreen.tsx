@@ -14,21 +14,24 @@ import {
 } from '@/services/businesses';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
     FlatList,
+    ListRenderItemInfo,
     RefreshControl,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
+    ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
+const ITEM_HEIGHT = 120; // Fixed height for getItemLayout optimization
 
 // Business type filters with colors
 const BUSINESS_TYPES = [
@@ -42,6 +45,92 @@ const BUSINESS_TYPES = [
 
 // Debounce timeout in ms
 const SEARCH_DEBOUNCE_MS = 300;
+
+// Pre-computed style cache for dynamic colors
+const typeColorStylesCache = new Map<string, { bg: ViewStyle; text: { color: string } }>();
+const getTypeColorStyles = (color: string) => {
+    if (!typeColorStylesCache.has(color)) {
+        typeColorStylesCache.set(color, {
+            bg: { backgroundColor: `${color}15` },
+            text: { color },
+        });
+    }
+    return typeColorStylesCache.get(color)!;
+};
+
+// Memoized Business Card component
+interface BusinessCardProps {
+    item: BusinessDetail;
+    onPress: (id: string) => void;
+    typeColor: string;
+    typeIcon: keyof typeof Ionicons.glyphMap;
+}
+
+const BusinessCard = memo(function BusinessCard({ item, onPress, typeColor, typeIcon }: BusinessCardProps) {
+    const colorStyles = getTypeColorStyles(typeColor);
+
+    return (
+        <TouchableOpacity
+            style={styles.businessCard}
+            onPress={() => onPress(item.id)}
+            activeOpacity={0.7}
+        >
+            <View style={[styles.businessImage, colorStyles.bg]}>
+                <Ionicons
+                    name={typeIcon}
+                    size={28}
+                    color={typeColor}
+                />
+            </View>
+
+            <View style={styles.businessInfo}>
+                <View style={styles.businessHeader}>
+                    <Text style={styles.businessName} numberOfLines={1}>
+                        {item.name}
+                    </Text>
+                    <View style={styles.ratingContainer}>
+                        <Ionicons name="star" size={14} color={accent.amber} />
+                        <Text style={styles.ratingText}>
+                            {item.averageRating.toFixed(1)}
+                        </Text>
+                    </View>
+                </View>
+
+                <View style={styles.businessMeta}>
+                    <View style={[styles.typeBadge, colorStyles.bg]}>
+                        <Text style={[styles.typeText, colorStyles.text]}>
+                            {BUSINESS_TYPE_LABELS[item.type] || item.type}
+                        </Text>
+                    </View>
+                    {item.totalReviews > 0 && (
+                        <Text style={styles.reviewsText}>
+                            ({item.totalReviews} reseñas)
+                        </Text>
+                    )}
+                </View>
+
+                {item.address && (
+                    <View style={styles.addressRow}>
+                        <Ionicons name="location-outline" size={14} color={neutral.steel} />
+                        <Text style={styles.addressText} numberOfLines={1}>
+                            {item.address}
+                        </Text>
+                    </View>
+                )}
+
+                {item.description && (
+                    <Text style={styles.descriptionText} numberOfLines={2}>
+                        {item.description}
+                    </Text>
+                )}
+            </View>
+
+            <View style={styles.chevronContainer}>
+                <Ionicons name="chevron-forward" size={20} color={brand.primary} />
+            </View>
+        </TouchableOpacity>
+    );
+});
 
 export function ComerciosScreen() {
     const router = useRouter();
@@ -153,81 +242,37 @@ export function ComerciosScreen() {
         loadBusinesses(type);
     };
 
-    const getTypeIcon = (type: string): keyof typeof Ionicons.glyphMap => {
+    const getTypeIcon = useCallback((type: string): keyof typeof Ionicons.glyphMap => {
         return (BUSINESS_TYPE_ICONS[type] || 'storefront') as keyof typeof Ionicons.glyphMap;
-    };
+    }, []);
 
-    const getTypeColor = (type: string): string => {
+    const getTypeColor = useCallback((type: string): string => {
         const typeObj = BUSINESS_TYPES.find(t => t.id === type);
         return typeObj?.color || brand.primary;
-    };
+    }, []);
 
-    const renderBusinessCard = ({ item }: { item: BusinessDetail }) => {
-        const typeColor = getTypeColor(item.type);
+    const handleBusinessPress = useCallback((id: string) => {
+        router.push(`/business/${id}`);
+    }, [router]);
 
+    const renderBusinessCard = useCallback(({ item }: ListRenderItemInfo<BusinessDetail>) => {
         return (
-            <TouchableOpacity
-                style={styles.businessCard}
-                onPress={() => router.push(`/business/${item.id}`)}
-                activeOpacity={0.7}
-            >
-                {/* Image placeholder with colored icon */}
-                <View style={[styles.businessImage, { backgroundColor: `${typeColor}15` }]}>
-                    <Ionicons
-                        name={getTypeIcon(item.type)}
-                        size={28}
-                        color={typeColor}
-                    />
-                </View>
-
-                <View style={styles.businessInfo}>
-                    <View style={styles.businessHeader}>
-                        <Text style={styles.businessName} numberOfLines={1}>
-                            {item.name}
-                        </Text>
-                        <View style={styles.ratingContainer}>
-                            <Ionicons name="star" size={14} color={accent.amber} />
-                            <Text style={styles.ratingText}>
-                                {item.averageRating.toFixed(1)}
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.businessMeta}>
-                        <View style={[styles.typeBadge, { backgroundColor: `${typeColor}15` }]}>
-                            <Text style={[styles.typeText, { color: typeColor }]}>
-                                {BUSINESS_TYPE_LABELS[item.type] || item.type}
-                            </Text>
-                        </View>
-                        {item.totalReviews > 0 && (
-                            <Text style={styles.reviewsText}>
-                                ({item.totalReviews} reseñas)
-                            </Text>
-                        )}
-                    </View>
-
-                    {item.address && (
-                        <View style={styles.addressRow}>
-                            <Ionicons name="location-outline" size={14} color={neutral.steel} />
-                            <Text style={styles.addressText} numberOfLines={1}>
-                                {item.address}
-                            </Text>
-                        </View>
-                    )}
-
-                    {item.description && (
-                        <Text style={styles.descriptionText} numberOfLines={2}>
-                            {item.description}
-                        </Text>
-                    )}
-                </View>
-
-                <View style={styles.chevronContainer}>
-                    <Ionicons name="chevron-forward" size={20} color={brand.primary} />
-                </View>
-            </TouchableOpacity>
+            <BusinessCard
+                item={item}
+                onPress={handleBusinessPress}
+                typeColor={getTypeColor(item.type)}
+                typeIcon={getTypeIcon(item.type)}
+            />
         );
-    };
+    }, [handleBusinessPress, getTypeColor, getTypeIcon]);
+
+    const getItemLayout = useCallback((_: any, index: number) => ({
+        length: ITEM_HEIGHT,
+        offset: ITEM_HEIGHT * index,
+        index,
+    }), []);
+
+    const keyExtractor = useCallback((item: BusinessDetail) => item.id, []);
 
     const renderEmptyState = () => (
         <View style={styles.emptyState}>
@@ -367,8 +412,13 @@ export function ComerciosScreen() {
             ) : (
                 <FlatList
                     data={businesses}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={keyExtractor}
                     renderItem={renderBusinessCard}
+                    getItemLayout={getItemLayout}
+                    initialNumToRender={8}
+                    maxToRenderPerBatch={10}
+                    windowSize={5}
+                    removeClippedSubviews={true}
                     contentContainerStyle={[
                         styles.listContent,
                         businesses.length === 0 && styles.emptyListContent,

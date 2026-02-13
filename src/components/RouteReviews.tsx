@@ -12,11 +12,12 @@ import {
     RouteReview,
 } from "@/services/reviews";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
     FlatList,
+    ListRenderItemInfo,
     Modal,
     StyleSheet,
     Text,
@@ -24,6 +25,78 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+
+const REVIEW_ITEM_HEIGHT = 100;
+
+// Helper function to format dates
+const formatReviewDate = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("es-MX", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+// Stars component
+const Stars = memo(function Stars({ count, size = 16 }: { count: number; size?: number }) {
+  return (
+    <View style={styles.starsRow}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Ionicons
+          key={star}
+          name={star <= count ? "star" : "star-outline"}
+          size={size}
+          color="#FBBF24"
+        />
+      ))}
+    </View>
+  );
+});
+
+// Memoized Review Item component
+interface ReviewItemProps {
+  item: RouteReview;
+  isOwnReview: boolean;
+  onDelete: () => void;
+}
+
+const ReviewItem = memo(function ReviewItem({ item, isOwnReview, onDelete }: ReviewItemProps) {
+  return (
+    <View style={[styles.reviewItem, isOwnReview && styles.ownReviewItem]}>
+      <View style={styles.reviewHeader}>
+        <View style={styles.reviewerInfo}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {item.userName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View>
+            <Text style={styles.reviewerName}>{item.userName}</Text>
+            <Text style={styles.reviewDate}>
+              {formatReviewDate(item.createdAt)}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.reviewRating}>
+          <Stars count={item.rating} />
+        </View>
+      </View>
+      {item.comment && (
+        <Text style={styles.reviewComment}>{item.comment}</Text>
+      )}
+      {isOwnReview && (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={onDelete}
+        >
+          <Ionicons name="trash-outline" size={14} color={semantic.error} />
+          <Text style={styles.deleteButtonText}>Eliminar mi reseña</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+});
 
 interface RouteReviewsProps {
   routeId: string;
@@ -112,24 +185,14 @@ export default function RouteReviews({
     ]);
   };
 
-  const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("es-MX", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const renderStars = (count: number, interactive = false, size = 16) => {
+  const renderInteractiveStars = useCallback((count: number, size = 32) => {
     return (
       <View style={styles.starsRow}>
         {[1, 2, 3, 4, 5].map((star) => (
           <TouchableOpacity
             key={star}
-            onPress={() => interactive && setRating(star)}
-            disabled={!interactive}
-            style={interactive ? styles.starButton : undefined}
+            onPress={() => setRating(star)}
+            style={styles.starButton}
           >
             <Ionicons
               name={star <= count ? "star" : "star-outline"}
@@ -140,44 +203,26 @@ export default function RouteReviews({
         ))}
       </View>
     );
-  };
+  }, []);
 
-  const renderReviewItem = ({ item }: { item: RouteReview }) => {
+  const renderReviewItem = useCallback(({ item }: ListRenderItemInfo<RouteReview>) => {
     const isOwnReview = userReview?.id === item.id;
-
     return (
-      <View style={[styles.reviewItem, isOwnReview && styles.ownReviewItem]}>
-        <View style={styles.reviewHeader}>
-          <View style={styles.reviewerInfo}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {item.userName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-            <View>
-              <Text style={styles.reviewerName}>{item.userName}</Text>
-              <Text style={styles.reviewDate}>
-                {formatDate(item.createdAt)}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.reviewRating}>{renderStars(item.rating)}</View>
-        </View>
-        {item.comment && (
-          <Text style={styles.reviewComment}>{item.comment}</Text>
-        )}
-        {isOwnReview && (
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={handleDeleteReview}
-          >
-            <Ionicons name="trash-outline" size={14} color={semantic.error} />
-            <Text style={styles.deleteButtonText}>Eliminar mi reseña</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <ReviewItem
+        item={item}
+        isOwnReview={isOwnReview}
+        onDelete={handleDeleteReview}
+      />
     );
-  };
+  }, [userReview?.id, handleDeleteReview]);
+
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: REVIEW_ITEM_HEIGHT,
+    offset: REVIEW_ITEM_HEIGHT * index,
+    index,
+  }), []);
+
+  const keyExtractor = useCallback((item: RouteReview) => item.id, []);
 
   if (isLoading) {
     return (
@@ -221,8 +266,12 @@ export default function RouteReviews({
       ) : (
         <FlatList
           data={reviews}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
           renderItem={renderReviewItem}
+          getItemLayout={getItemLayout}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={3}
           scrollEnabled={false}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
@@ -249,7 +298,7 @@ export default function RouteReviews({
 
             <Text style={styles.ratingLabel}>Calificación</Text>
             <View style={styles.ratingSelector}>
-              {renderStars(rating, true, 32)}
+              {renderInteractiveStars(rating)}
             </View>
 
             <Text style={styles.commentLabel}>Comentario (opcional)</Text>

@@ -14,20 +14,23 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
     FlatList,
+    ListRenderItemInfo,
     RefreshControl,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
+    ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
+const ROUTE_ITEM_HEIGHT = 110;
 
 type TabType = 'purchased' | 'created' | 'saved';
 
@@ -58,6 +61,102 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
     rechazado: { label: 'Rechazado', color: semantic.error },
     archivado: { label: 'Archivado', color: neutral.steel },
 };
+
+// Pre-computed gradient colors cache
+const gradientColorsCache = new Map<string, readonly [string, string]>();
+const getGradientColors = (color: string): readonly [string, string] => {
+    if (!gradientColorsCache.has(color)) {
+        gradientColorsCache.set(color, [`${color}20`, `${color}05`] as const);
+    }
+    return gradientColorsCache.get(color)!;
+};
+
+// Pre-computed style cache for dynamic colors
+const difficultyStylesCache = new Map<string, { bg: ViewStyle; text: { color: string } }>();
+const getDifficultyStyles = (color: string) => {
+    if (!difficultyStylesCache.has(color)) {
+        difficultyStylesCache.set(color, {
+            bg: { backgroundColor: `${color}15` },
+            text: { color },
+        });
+    }
+    return difficultyStylesCache.get(color)!;
+};
+
+// Memoized Route Card component
+interface RouteCardProps {
+    item: UserRoute;
+    onPress: (id: string) => void;
+    showStatus: boolean;
+    formatDuration: (minutes: number | null) => string;
+}
+
+const RouteCard = memo(function RouteCard({ item, onPress, showStatus, formatDuration }: RouteCardProps) {
+    const difficultyColor = DIFFICULTY_COLORS[item.difficulty] || neutral.slate;
+    const statusConfig = STATUS_CONFIG[item.status] || STATUS_CONFIG.borrador;
+    const difficultyStyles = getDifficultyStyles(difficultyColor);
+    const gradientColors = getGradientColors(difficultyColor);
+
+    return (
+        <TouchableOpacity
+            style={styles.routeCard}
+            onPress={() => onPress(item.id)}
+            activeOpacity={0.7}
+        >
+            <View style={styles.routeImage}>
+                <LinearGradient
+                    colors={gradientColors}
+                    style={styles.routeImageGradient}
+                >
+                    <Ionicons name="bicycle" size={28} color={difficultyColor} />
+                </LinearGradient>
+                {showStatus && (
+                    <View style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}>
+                        <Text style={styles.statusText}>{statusConfig.label}</Text>
+                    </View>
+                )}
+            </View>
+
+            <View style={styles.routeInfo}>
+                <Text style={styles.routeName} numberOfLines={1}>
+                    {item.name}
+                </Text>
+
+                <View style={styles.routeStats}>
+                    <View style={styles.statItem}>
+                        <Ionicons name="map-outline" size={14} color={neutral.slate} />
+                        <Text style={styles.statText}>{item.distanceKm.toFixed(1)} km</Text>
+                    </View>
+                    <View style={styles.statDot} />
+                    <View style={styles.statItem}>
+                        <Ionicons name="time-outline" size={14} color={neutral.slate} />
+                        <Text style={styles.statText}>{formatDuration(item.estimatedDurationMin)}</Text>
+                    </View>
+                </View>
+
+                <View style={styles.routeFooter}>
+                    <View style={[styles.difficultyBadge, difficultyStyles.bg]}>
+                        <Text style={[styles.difficultyText, difficultyStyles.text]}>
+                            {DIFFICULTY_LABELS[item.difficulty]}
+                        </Text>
+                    </View>
+
+                    <View style={styles.ratingContainer}>
+                        <Ionicons name="star" size={14} color={accent.amber} />
+                        <Text style={styles.ratingText}>
+                            {item.averageRating.toFixed(1)}
+                        </Text>
+                        <Text style={styles.reviewsText}>
+                            ({item.totalReviews})
+                        </Text>
+                    </View>
+                </View>
+            </View>
+
+            <Ionicons name="chevron-forward" size={20} color={neutral.steel} />
+        </TouchableOpacity>
+    );
+});
 
 export function RutasScreen() {
     const router = useRouter();
@@ -114,80 +213,36 @@ export function RutasScreen() {
         }
     };
 
-    const formatDuration = (minutes: number | null): string => {
+    const formatDuration = useCallback((minutes: number | null): string => {
         if (!minutes) return '--';
         if (minutes < 60) return `${minutes}min`;
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
         return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-    };
+    }, []);
 
-    const renderRouteCard = ({ item }: { item: UserRoute }) => {
-        const difficultyColor = DIFFICULTY_COLORS[item.difficulty] || neutral.slate;
-        const statusConfig = STATUS_CONFIG[item.status] || STATUS_CONFIG.borrador;
+    const handleRoutePress = useCallback((id: string) => {
+        router.push(`/route/${id}`);
+    }, [router]);
 
+    const renderRouteCard = useCallback(({ item }: ListRenderItemInfo<UserRoute>) => {
         return (
-            <TouchableOpacity
-                style={styles.routeCard}
-                onPress={() => router.push(`/route/${item.id}`)}
-                activeOpacity={0.7}
-            >
-                {/* Image placeholder with gradient */}
-                <View style={styles.routeImage}>
-                    <LinearGradient
-                        colors={[`${difficultyColor}20`, `${difficultyColor}05`]}
-                        style={styles.routeImageGradient}
-                    >
-                        <Ionicons name="bicycle" size={28} color={difficultyColor} />
-                    </LinearGradient>
-                    {/* Status badge for created routes */}
-                    {activeTab === 'created' && (
-                        <View style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}>
-                            <Text style={styles.statusText}>{statusConfig.label}</Text>
-                        </View>
-                    )}
-                </View>
-
-                <View style={styles.routeInfo}>
-                    <Text style={styles.routeName} numberOfLines={1}>
-                        {item.name}
-                    </Text>
-
-                    <View style={styles.routeStats}>
-                        <View style={styles.statItem}>
-                            <Ionicons name="map-outline" size={14} color={neutral.slate} />
-                            <Text style={styles.statText}>{item.distanceKm.toFixed(1)} km</Text>
-                        </View>
-                        <View style={styles.statDot} />
-                        <View style={styles.statItem}>
-                            <Ionicons name="time-outline" size={14} color={neutral.slate} />
-                            <Text style={styles.statText}>{formatDuration(item.estimatedDurationMin)}</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.routeFooter}>
-                        <View style={[styles.difficultyBadge, { backgroundColor: `${difficultyColor}15` }]}>
-                            <Text style={[styles.difficultyText, { color: difficultyColor }]}>
-                                {DIFFICULTY_LABELS[item.difficulty]}
-                            </Text>
-                        </View>
-
-                        <View style={styles.ratingContainer}>
-                            <Ionicons name="star" size={14} color={accent.amber} />
-                            <Text style={styles.ratingText}>
-                                {item.averageRating.toFixed(1)}
-                            </Text>
-                            <Text style={styles.reviewsText}>
-                                ({item.totalReviews})
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-
-                <Ionicons name="chevron-forward" size={20} color={neutral.steel} />
-            </TouchableOpacity>
+            <RouteCard
+                item={item}
+                onPress={handleRoutePress}
+                showStatus={activeTab === 'created'}
+                formatDuration={formatDuration}
+            />
         );
-    };
+    }, [handleRoutePress, activeTab, formatDuration]);
+
+    const getItemLayout = useCallback((_: any, index: number) => ({
+        length: ROUTE_ITEM_HEIGHT,
+        offset: ROUTE_ITEM_HEIGHT * index,
+        index,
+    }), []);
+
+    const keyExtractor = useCallback((item: UserRoute) => item.id, []);
 
     const renderEmptyState = () => {
         const emptyConfig = {
@@ -305,8 +360,13 @@ export function RutasScreen() {
             ) : (
                 <FlatList
                     data={routes}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={keyExtractor}
                     renderItem={renderRouteCard}
+                    getItemLayout={getItemLayout}
+                    initialNumToRender={8}
+                    maxToRenderPerBatch={10}
+                    windowSize={5}
+                    removeClippedSubviews={true}
                     contentContainerStyle={[
                         styles.listContent,
                         routes.length === 0 && styles.emptyListContent,

@@ -3,6 +3,7 @@
  * Handles fetching and managing business data
  */
 
+import { apiCache, CacheKeys, CacheTTL } from "@/lib/cache";
 import { supabase } from "@/lib/supabase";
 import type { Coordinate } from "@/types";
 
@@ -118,6 +119,10 @@ function transformProduct(product: any): BusinessProduct {
  * Get all active businesses
  */
 export async function getAllBusinesses(): Promise<BusinessDetail[]> {
+  const cacheKey = CacheKeys.allBusinesses();
+  const cached = apiCache.get<BusinessDetail[]>(cacheKey);
+  if (cached) return cached;
+
   const { data, error } = await supabase
     .from("businesses")
     .select("*")
@@ -129,7 +134,9 @@ export async function getAllBusinesses(): Promise<BusinessDetail[]> {
     return [];
   }
 
-  return (data || []).map(transformBusiness);
+  const businesses = (data || []).map(transformBusiness);
+  apiCache.set(cacheKey, businesses, CacheTTL.MEDIUM);
+  return businesses;
 }
 
 /**
@@ -138,6 +145,10 @@ export async function getAllBusinesses(): Promise<BusinessDetail[]> {
 export async function getBusinessesByType(
   type: string,
 ): Promise<BusinessDetail[]> {
+  const cacheKey = CacheKeys.businessesByType(type);
+  const cached = apiCache.get<BusinessDetail[]>(cacheKey);
+  if (cached) return cached;
+
   const { data, error } = await supabase
     .from("businesses")
     .select("*")
@@ -150,7 +161,9 @@ export async function getBusinessesByType(
     return [];
   }
 
-  return (data || []).map(transformBusiness);
+  const businesses = (data || []).map(transformBusiness);
+  apiCache.set(cacheKey, businesses, CacheTTL.MEDIUM);
+  return businesses;
 }
 
 /**
@@ -159,6 +172,10 @@ export async function getBusinessesByType(
 export async function getBusinessById(
   id: string,
 ): Promise<BusinessDetail | null> {
+  const cacheKey = CacheKeys.businessById(id);
+  const cached = apiCache.get<BusinessDetail | null>(cacheKey);
+  if (cached !== null) return cached;
+
   const { data, error } = await supabase
     .from("businesses")
     .select("*")
@@ -170,7 +187,9 @@ export async function getBusinessById(
     return null;
   }
 
-  return transformBusiness(data);
+  const business = transformBusiness(data);
+  apiCache.set(cacheKey, business, CacheTTL.LONG);
+  return business;
 }
 
 /**
@@ -201,6 +220,10 @@ export async function getBusinessProducts(
 export async function searchBusinesses(
   query: string,
 ): Promise<BusinessDetail[]> {
+  const cacheKey = CacheKeys.searchBusinesses(query.toLowerCase());
+  const cached = apiCache.get<BusinessDetail[]>(cacheKey);
+  if (cached) return cached;
+
   const { data, error } = await supabase
     .from("businesses")
     .select("*")
@@ -214,7 +237,9 @@ export async function searchBusinesses(
     return [];
   }
 
-  return (data || []).map(transformBusiness);
+  const businesses = (data || []).map(transformBusiness);
+  apiCache.set(cacheKey, businesses, CacheTTL.SHORT);
+  return businesses;
 }
 
 /**

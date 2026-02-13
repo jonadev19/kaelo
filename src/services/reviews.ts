@@ -37,9 +37,10 @@ export interface CreateReviewData {
 export async function getRouteReviews(routeId: string): Promise<RouteReview[]> {
   // First, get the reviews
   const { data: reviewsData, error: reviewsError } = await supabase
-    .from("route_reviews")
+    .from("reviews")
     .select("id, route_id, user_id, rating, comment, created_at")
     .eq("route_id", routeId)
+    .eq("review_type", "ruta")
     .order("created_at", { ascending: false });
 
   if (reviewsError) {
@@ -89,10 +90,11 @@ export async function hasUserReviewedRoute(routeId: string): Promise<boolean> {
   if (!user) return false;
 
   const { data, error } = await supabase
-    .from("route_reviews")
+    .from("reviews")
     .select("id")
     .eq("route_id", routeId)
     .eq("user_id", user.id)
+    .eq("review_type", "ruta")
     .single();
 
   if (error) return false;
@@ -112,10 +114,11 @@ export async function getUserReview(
 
   // Get the review
   const { data, error } = await supabase
-    .from("route_reviews")
+    .from("reviews")
     .select("id, route_id, user_id, rating, comment, created_at")
     .eq("route_id", routeId)
     .eq("user_id", user.id)
+    .eq("review_type", "ruta")
     .single();
 
   if (error || !data) return null;
@@ -175,11 +178,12 @@ export async function createReview(
     return { success: false, error: "Ya has dejado una reseña para esta ruta" };
   }
 
-  const { error } = await supabase.from("route_reviews").insert({
+  const { error } = await supabase.from("reviews").insert({
     route_id: reviewData.routeId,
     user_id: user.id,
     rating: reviewData.rating,
     comment: reviewData.comment?.trim() || null,
+    review_type: "ruta",
   });
 
   if (error) {
@@ -208,10 +212,11 @@ export async function updateReview(
   }
 
   const { data: review } = await supabase
-    .from("route_reviews")
+    .from("reviews")
     .select("route_id")
     .eq("id", reviewId)
     .eq("user_id", user.id)
+    .eq("review_type", "ruta")
     .single();
 
   if (!review) {
@@ -219,7 +224,7 @@ export async function updateReview(
   }
 
   const { error } = await supabase
-    .from("route_reviews")
+    .from("reviews")
     .update({
       rating: updates.rating,
       comment: updates.comment?.trim() || null,
@@ -251,10 +256,11 @@ export async function deleteReview(
   }
 
   const { data: review } = await supabase
-    .from("route_reviews")
+    .from("reviews")
     .select("route_id")
     .eq("id", reviewId)
     .eq("user_id", user.id)
+    .eq("review_type", "ruta")
     .single();
 
   if (!review) {
@@ -262,7 +268,7 @@ export async function deleteReview(
   }
 
   const { error } = await supabase
-    .from("route_reviews")
+    .from("reviews")
     .delete()
     .eq("id", reviewId)
     .eq("user_id", user.id);
@@ -283,9 +289,10 @@ export async function deleteReview(
 async function updateRouteRating(routeId: string): Promise<void> {
   try {
     const { data, error } = await supabase
-      .from("route_reviews")
+      .from("reviews")
       .select("rating")
-      .eq("route_id", routeId);
+      .eq("route_id", routeId)
+      .eq("review_type", "ruta");
 
     if (error || !data) return;
 
@@ -316,9 +323,10 @@ export async function getRouteReviewStats(routeId: string): Promise<{
   distribution: Record<number, number>;
 }> {
   const { data, error } = await supabase
-    .from("route_reviews")
+    .from("reviews")
     .select("rating")
-    .eq("route_id", routeId);
+    .eq("route_id", routeId)
+    .eq("review_type", "ruta");
 
   if (error || !data) {
     return {

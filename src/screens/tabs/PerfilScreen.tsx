@@ -273,6 +273,27 @@ export function PerfilScreen() {
 
           <TouchableOpacity
             style={styles.menuItem}
+            onPress={() => router.push("/metrics")}
+            activeOpacity={0.7}
+            accessibilityLabel="Ver mis estadisticas y logros"
+            accessibilityRole="button"
+            accessibilityHint="Abre la pantalla de metricas y logros"
+          >
+            <View style={styles.menuIconBox}>
+              <Ionicons name="stats-chart" size={20} color={neutral.graphite} />
+            </View>
+            <Text style={styles.menuText}>Mis Estadisticas</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={neutral.steel}
+            />
+          </TouchableOpacity>
+
+          <View style={styles.separator} />
+
+          <TouchableOpacity
+            style={styles.menuItem}
             onPress={() =>
               Alert.alert(
                 "Próximamente",

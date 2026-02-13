@@ -1,7 +1,7 @@
 # 03 - Architecture
 
-**Version:** 1.1
-**Last Updated:** Enero 2026
+**Version:** 1.2
+**Last Updated:** Enero 29, 2026
 
 ## 10. ARQUITECTURA DEL SISTEMA
 
@@ -515,17 +515,48 @@ CREATE TABLE user_personal_records (
 -- User monthly statistics (pre-aggregated)
 CREATE TABLE user_stats_monthly (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES profiles(id),
-    year INTEGER NOT NULL,
-    month INTEGER NOT NULL,
-    total_distance_km NUMERIC(10,2) DEFAULT 0,
-    total_rides INTEGER DEFAULT 0,
-    total_duration_min INTEGER DEFAULT 0,
-    avg_speed_kmh NUMERIC(4,1),
-    total_calories_burned INTEGER DEFAULT 0,
-    achievements_unlocked INTEGER DEFAULT 0,
-    favorite_route_id UUID REFERENCES routes(id),
-    calculated_at TIMESTAMPTZ DEFAULT NOW(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    year INTEGER NOT NULL CHECK (year >= 2026 AND year <= 2100),
+    month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
+
+    -- Ride metrics
+    total_distance_km NUMERIC(10,2) DEFAULT 0 CHECK (total_distance_km >= 0),
+    total_rides INTEGER DEFAULT 0 CHECK (total_rides >= 0),
+    total_duration_min INTEGER DEFAULT 0 CHECK (total_duration_min >= 0),
+    total_elevation_gain_m INTEGER DEFAULT 0 CHECK (total_elevation_gain_m >= 0),
+
+    -- Performance metrics
+    avg_speed_kmh NUMERIC(4,1) CHECK (avg_speed_kmh >= 0),
+    max_speed_kmh NUMERIC(4,1) CHECK (max_speed_kmh >= 0),
+    avg_distance_per_ride_km NUMERIC(6,2) CHECK (avg_distance_per_ride_km >= 0),
+
+    -- Health metrics
+    total_calories_burned INTEGER DEFAULT 0 CHECK (total_calories_burned >= 0),
+
+    -- Engagement metrics
+    routes_completed INTEGER DEFAULT 0 CHECK (routes_completed >= 0),
+    unique_routes_completed INTEGER DEFAULT 0 CHECK (unique_routes_completed >= 0),
+    waypoints_visited INTEGER DEFAULT 0 CHECK (waypoints_visited >= 0),
+    businesses_visited INTEGER DEFAULT 0 CHECK (businesses_visited >= 0),
+
+    -- Favorites
+    favorite_route_id UUID REFERENCES routes(id) ON DELETE SET NULL,
+    favorite_route_rides INTEGER DEFAULT 0,
+
+    -- Gamification
+    achievements_unlocked INTEGER DEFAULT 0 CHECK (achievements_unlocked >= 0),
+    total_points_earned INTEGER DEFAULT 0 CHECK (total_points_earned >= 0),
+
+    -- Comparisons (vs previous month)
+    distance_change_percent NUMERIC(5,2),
+    rides_change_percent NUMERIC(5,2),
+    speed_change_percent NUMERIC(5,2),
+
+    -- Timestamps
+    calculated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
     UNIQUE(user_id, year, month)
 );
 
