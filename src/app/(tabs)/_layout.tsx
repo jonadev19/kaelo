@@ -4,7 +4,7 @@ import React from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
-import { brand, neutral, semantic, tabBar } from "@/constants/Colors";
+import { neutral, semantic, tabBar } from "@/constants/Colors";
 import { useCart } from "@/stores/cartStore";
 
 // Tab bar icon with optional badge
@@ -88,23 +88,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="comercios"
+        name="rutas"
         options={{
-          title: "Comercios",
-          headerStyle: {
-            backgroundColor: neutral.white,
-          },
-          headerTitleStyle: {
-            color: neutral.charcoal,
-            fontWeight: "700",
-          },
+          title: "Rutas",
+          headerShown: false,
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon
-              name="storefront"
-              color={color}
-              focused={focused}
-              badge={cartCount}
-            />
+            <TabBarIcon name="map" color={color} focused={focused} />
           ),
         }}
       />
@@ -128,9 +117,9 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Hide the old rutas tab - now merged into Explorar */}
+      {/* Hide comercios tab */}
       <Tabs.Screen
-        name="rutas"
+        name="comercios"
         options={{
           href: null,
         }}
